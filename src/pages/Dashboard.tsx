@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import NewOrderForm from "@/components/orders/NewOrderForm";
+import TopUpDialog from "@/components/wallet/TopUpDialog";
 import {
   Zap,
   Wallet,
@@ -38,6 +39,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [newMessage, setNewMessage] = useState("");
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -272,7 +274,7 @@ const Dashboard = () => {
                 <Wallet className="w-5 h-5 text-primary" />
                 <span className="font-bold text-primary">{balance.toLocaleString()} MZN</span>
               </div>
-              <Button variant="default" size="sm">
+              <Button variant="default" size="sm" onClick={() => setTopUpDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Saldo
               </Button>
@@ -355,7 +357,10 @@ const Dashboard = () => {
                       <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                   </div>
-                  <div className="p-6 rounded-2xl glass-card premium-border group hover:scale-[1.02] transition-all cursor-pointer">
+                  <div 
+                    onClick={() => setTopUpDialogOpen(true)}
+                    className="p-6 rounded-2xl glass-card premium-border group hover:scale-[1.02] transition-all cursor-pointer"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
@@ -494,7 +499,7 @@ const Dashboard = () => {
               <div className="p-8 rounded-2xl gradient-gold shadow-glow">
                 <p className="text-primary-foreground/80 text-sm font-medium mb-2">Saldo Disponível</p>
                 <p className="text-4xl font-bold text-primary-foreground mb-4">{balance.toLocaleString()} MZN</p>
-                <Button variant="secondary" size="lg">
+                <Button variant="secondary" size="lg" onClick={() => setTopUpDialogOpen(true)}>
                   <Plus className="w-5 h-5 mr-2" />
                   Adicionar Saldo
                 </Button>
@@ -504,7 +509,10 @@ const Dashboard = () => {
               <div>
                 <h2 className="font-display text-lg font-bold mb-4">Métodos de Pagamento</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-6 rounded-2xl glass-card premium-border cursor-pointer hover:border-primary/40 transition-all">
+                <div 
+                    onClick={() => setTopUpDialogOpen(true)}
+                    className="p-6 rounded-2xl glass-card premium-border cursor-pointer hover:border-red-500/40 transition-all"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center">
                         <span className="text-2xl font-bold text-red-500">M</span>
@@ -515,7 +523,10 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="p-6 rounded-2xl glass-card premium-border cursor-pointer hover:border-primary/40 transition-all">
+                  <div 
+                    onClick={() => setTopUpDialogOpen(true)}
+                    className="p-6 rounded-2xl glass-card premium-border cursor-pointer hover:border-orange-500/40 transition-all"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center">
                         <span className="text-2xl font-bold text-orange-500">E</span>
@@ -679,6 +690,12 @@ const Dashboard = () => {
       <NewOrderForm 
         open={orderDialogOpen} 
         onOpenChange={setOrderDialogOpen}
+      />
+
+      {/* Top Up Dialog */}
+      <TopUpDialog
+        open={topUpDialogOpen}
+        onOpenChange={setTopUpDialogOpen}
       />
     </div>
   );
