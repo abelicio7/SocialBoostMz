@@ -64,7 +64,7 @@ const HeroSection = () => {
               </div>
               <div className="text-left">
                 <p className="font-semibold text-foreground">Entrega Rápida</p>
-                <p className="text-sm text-muted-foreground">Início em 24h</p>
+                <p className="text-sm text-muted-foreground">A partir de 10min</p>
               </div>
             </div>
             <div className="flex items-center justify-center gap-3 p-4 rounded-xl glass-card">
