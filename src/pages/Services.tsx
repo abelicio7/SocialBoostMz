@@ -1,10 +1,27 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Facebook, Instagram, Youtube, Twitter, Music2, Clock, AlertTriangle, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import NewOrderForm from "@/components/orders/NewOrderForm";
+
+interface DbService {
+  id: string;
+  name: string;
+  platform: string;
+  price_per_1000: number;
+  min_quantity: number;
+  max_quantity: number;
+  daily_limit: number;
+  estimated_time: string;
+  description: string | null;
+  is_active: boolean;
+}
 
 const platforms = [
   { id: "facebook", name: "Facebook", icon: Facebook, color: "from-blue-500 to-blue-600" },
@@ -14,35 +31,38 @@ const platforms = [
   { id: "twitter", name: "Twitter / X", icon: Twitter, color: "from-gray-700 to-gray-800" },
 ];
 
-const services = {
-  facebook: [
-    { id: 1, name: "Seguidores para Páginas", price: 350, quantity: 1000, time: "1-24h", description: "Seguidores reais para a sua página" },
-    { id: 2, name: "Curtidas", price: 100, quantity: 1000, time: "1-12h", description: "Curtidas para as suas publicações" },
-    { id: 3, name: "Reação Amei", price: 120, quantity: 1000, time: "1-12h", description: "Reações de amor nas publicações" },
-  ],
-  instagram: [
-    { id: 1, name: "Curtidas", price: 145, quantity: 1000, time: "1-12h", description: "Curtidas para o seu conteúdo" },
-    { id: 2, name: "Respostagem", price: 200, quantity: 1000, time: "1-24h", description: "Respostagens do seu conteúdo" },
-    { id: 3, name: "Alcance + Impressões + Visitas no Perfil", price: 170, quantity: 1000, time: "1-24h", description: "Aumente o alcance e impressões" },
-  ],
-  tiktok: [
-    { id: 1, name: "Seguidores", price: 370, quantity: 1000, time: "1-24h", description: "Seguidores activos no TikTok" },
-    { id: 2, name: "Visualizações", price: 100, quantity: 1000, time: "1-6h", description: "Visualizações nos seus vídeos" },
-    { id: 3, name: "Curtidas", price: 130, quantity: 1000, time: "1-12h", description: "Curtidas nos seus vídeos" },
-  ],
-  youtube: [
-    { id: 1, name: "Visualizações", price: 250, quantity: 1000, time: "1-24h", description: "Visualizações nos vídeos (máx 10k/dia)" },
-  ],
-  twitter: [
-    { id: 1, name: "Seguidores", price: 480, quantity: 1000, time: "1-24h", description: "Seguidores activos no Twitter/X" },
-    { id: 2, name: "Curtidas", price: 150, quantity: 1000, time: "1-12h", description: "Curtidas nos tweets" },
-    { id: 3, name: "Visualizações em Vídeos", price: 120, quantity: 1000, time: "1-6h", description: "Visualizações nos vídeos" },
-    { id: 4, name: "Retweets", price: 250, quantity: 1000, time: "1-24h", description: "Retweets nos seus posts" },
-  ],
-};
-
 const Services = () => {
   const [activePlatform, setActivePlatform] = useState("facebook");
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Fetch services from database
+  const { data: dbServices } = useQuery({
+    queryKey: ['services-catalog'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('is_active', true)
+        .order('platform', { ascending: true });
+      if (error) throw error;
+      return data as DbService[];
+    },
+  });
+
+  // Filter services by platform
+  const platformServices = dbServices?.filter(s => s.platform === activePlatform) || [];
+
+  const handleOrderClick = (serviceId: string) => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setSelectedServiceId(serviceId);
+    setOrderDialogOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,49 +112,57 @@ const Services = () => {
 
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {services[activePlatform as keyof typeof services].map((service, index) => (
-              <div
-                key={service.id}
-                className="p-6 rounded-2xl glass-card premium-border group hover:scale-[1.02] transition-all duration-300 animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-display text-lg font-bold mb-1 group-hover:text-primary transition-colors">
-                      {service.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {service.description}
-                    </p>
+            {platformServices.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                A carregar serviços...
+              </div>
+            ) : (
+              platformServices.map((service, index) => (
+                <div
+                  key={service.id}
+                  className="p-6 rounded-2xl glass-card premium-border group hover:scale-[1.02] transition-all duration-300 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-display text-lg font-bold mb-1 group-hover:text-primary transition-colors">
+                        {service.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {service.description}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="flex-shrink-0">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {service.estimated_time}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="flex-shrink-0">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {service.time}
-                  </Badge>
-                </div>
 
-                <div className="flex items-end justify-between mt-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Por {service.quantity.toLocaleString()}</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {service.price} <span className="text-sm font-normal text-muted-foreground">MZN</span>
-                    </p>
-                  </div>
-                  <Link to="/auth">
-                    <Button variant="outline" size="sm">
+                  <div className="flex items-end justify-between mt-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Por 1.000</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {Number(service.price_per_1000).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">MZN</span>
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleOrderClick(service.id)}
+                    >
                       <TrendingUp className="w-4 h-4 mr-1" />
                       Pedir
                     </Button>
-                  </Link>
-                </div>
+                  </div>
 
-                <div className="mt-4 pt-4 border-t border-border/50">
-                  <p className="text-xs text-muted-foreground">
-                    Mín: 100 • Máx: 100.000 • Limite diário: 200.000
-                  </p>
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground">
+                      Mín: {service.min_quantity.toLocaleString()} • Máx: {service.max_quantity.toLocaleString()} • Limite diário: {service.daily_limit.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* CTA */}
@@ -142,16 +170,29 @@ const Services = () => {
             <p className="text-muted-foreground mb-4">
               Pronto para começar? Crie uma conta e carregue o seu saldo.
             </p>
-            <Link to="/auth">
-              <Button variant="hero" size="lg">
-                Criar Conta Grátis
+            {user ? (
+              <Button variant="hero" size="lg" onClick={() => setOrderDialogOpen(true)}>
+                Fazer Novo Pedido
               </Button>
-            </Link>
+            ) : (
+              <Link to="/auth">
+                <Button variant="hero" size="lg">
+                  Criar Conta Grátis
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </main>
 
       <Footer />
+
+      {/* Order Dialog */}
+      <NewOrderForm 
+        open={orderDialogOpen} 
+        onOpenChange={setOrderDialogOpen}
+        preselectedServiceId={selectedServiceId}
+      />
     </div>
   );
 };
