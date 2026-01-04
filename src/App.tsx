@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import Services from "./pages/Services";
 import Dashboard from "./pages/Dashboard";
 import FAQ from "./pages/FAQ";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/servicos" element={<Services />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/termos" element={<Terms />} />
+            <Route path="/privacidade" element={<Privacy />} />
             <Route path="/precos" element={<Services />} />
             
             {/* Admin Routes */}
