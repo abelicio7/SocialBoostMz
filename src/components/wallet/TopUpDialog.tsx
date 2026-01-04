@@ -52,6 +52,14 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["user-transactions"] });
       toast.success("Recarga efectuada com sucesso!");
+      
+      // Meta Pixel Purchase event
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq("track", "Purchase", {
+          value: amount,
+          currency: "MZN",
+        });
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao processar pagamento");

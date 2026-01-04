@@ -166,6 +166,22 @@ serve(async (req) => {
         // Don't fail the whole request, balance was already updated
       }
 
+      // Send webhook notification
+      try {
+        const webhookUrl = "https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada";
+        await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: `Recarregamento de ${amount} MZN APROVADO💰`,
+          }),
+        });
+        console.log("Webhook notification sent successfully");
+      } catch (webhookError) {
+        console.error("Failed to send webhook notification:", webhookError);
+        // Don't fail the request if webhook fails
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
