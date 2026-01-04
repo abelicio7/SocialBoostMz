@@ -162,6 +162,7 @@ const AdminOrders = () => {
               <TableHead>ID</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Serviço</TableHead>
+              <TableHead>Link</TableHead>
               <TableHead>Quantidade</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
@@ -172,13 +173,13 @@ const AdminOrders = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   A carregar...
                 </TableCell>
               </TableRow>
             ) : filteredOrders?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Nenhum pedido encontrado
                 </TableCell>
               </TableRow>
@@ -199,6 +200,17 @@ const AdminOrders = () => {
                       <p className="font-medium">{(order.services as any)?.name}</p>
                       <p className="text-sm text-muted-foreground capitalize">{(order.services as any)?.platform}</p>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <a 
+                      href={order.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-sm max-w-[200px] truncate block"
+                      title={order.link}
+                    >
+                      {order.link.length > 30 ? order.link.slice(0, 30) + '...' : order.link}
+                    </a>
                   </TableCell>
                   <TableCell>{order.quantity.toLocaleString()}</TableCell>
                   <TableCell className="font-medium">{Number(order.total_price).toLocaleString()} MZN</TableCell>
