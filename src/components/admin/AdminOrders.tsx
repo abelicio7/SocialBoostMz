@@ -51,8 +51,8 @@ const AdminOrders = () => {
         .from('orders')
         .select(`
           *,
-          profiles!orders_user_id_fkey (full_name, phone),
-          services!orders_service_id_fkey (name, platform)
+          profiles (full_name, phone),
+          services (name, platform)
         `)
         .order('created_at', { ascending: false });
 
