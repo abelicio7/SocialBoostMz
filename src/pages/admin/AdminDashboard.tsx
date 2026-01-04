@@ -13,8 +13,8 @@ const AdminDashboard = () => {
         .from('orders')
         .select(`
           *,
-          profiles:user_id (full_name),
-          services:service_id (name, platform)
+          profiles!orders_user_id_fkey (full_name),
+          services!orders_service_id_fkey (name, platform)
         `)
         .order('created_at', { ascending: false })
         .limit(5);
