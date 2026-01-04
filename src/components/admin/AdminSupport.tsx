@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User } from "lucide-react";
+import { Send, User, X, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface Conversation {
@@ -14,6 +14,7 @@ interface Conversation {
   unread_count: number;
   last_message: string;
   last_message_at: string;
+  is_closed: boolean;
 }
 
 const AdminSupport = () => {
@@ -23,33 +24,45 @@ const AdminSupport = () => {
   const queryClient = useQueryClient();
 
   // Fetch conversations list
-  const { data: conversations } = useQuery({
+  const { data: conversations, refetch: refetchConversations } = useQuery({
     queryKey: ['admin-conversations'],
     queryFn: async () => {
-      const { data: messages, error } = await supabase
+      // First get all messages
+      const { data: messages, error: messagesError } = await supabase
         .from('support_messages')
-        .select(`
-          user_id,
-          message,
-          is_read,
-          is_from_admin,
-          created_at,
-          profiles:user_id (full_name)
-        `)
+        .select('user_id, message, is_read, is_from_admin, created_at, conversation_closed')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (messagesError) throw messagesError;
+
+      // Get unique user IDs
+      const userIds = [...new Set(messages?.map(m => m.user_id) || [])];
+      
+      if (userIds.length === 0) return [];
+
+      // Fetch profiles separately
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id -> profile
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
       // Group by user
       const userMap = new Map<string, Conversation>();
       messages?.forEach((msg) => {
         if (!userMap.has(msg.user_id)) {
+          const profile = profileMap.get(msg.user_id);
           userMap.set(msg.user_id, {
             user_id: msg.user_id,
-            full_name: (msg.profiles as any)?.full_name || 'Utilizador',
+            full_name: profile?.full_name || 'Utilizador',
             unread_count: 0,
             last_message: msg.message,
             last_message_at: msg.created_at,
+            is_closed: msg.conversation_closed || false,
           });
         }
         if (!msg.is_read && !msg.is_from_admin) {
@@ -95,12 +108,12 @@ const AdminSupport = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'support_messages',
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['admin-conversations'] });
+          refetchConversations();
           if (selectedUser) {
             refetchMessages();
           }
@@ -111,7 +124,7 @@ const AdminSupport = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedUser, queryClient, refetchMessages]);
+  }, [selectedUser, refetchConversations, refetchMessages]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -134,10 +147,74 @@ const AdminSupport = () => {
     onSuccess: () => {
       setNewMessage("");
       refetchMessages();
-      queryClient.invalidateQueries({ queryKey: ['admin-conversations'] });
+      refetchConversations();
     },
     onError: () => {
       toast.error('Erro ao enviar mensagem');
+    },
+  });
+
+  const closeConversation = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser) return;
+
+      // Send closing message
+      const { error: messageError } = await supabase.from('support_messages').insert({
+        user_id: selectedUser,
+        message: "--- Conversa encerrada pelo suporte ---",
+        is_from_admin: true,
+        is_read: false,
+        conversation_closed: true,
+      });
+
+      if (messageError) throw messageError;
+
+      // Mark all messages as closed
+      const { error: updateError } = await supabase
+        .from('support_messages')
+        .update({ conversation_closed: true })
+        .eq('user_id', selectedUser);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      toast.success('Conversa encerrada com sucesso');
+      setSelectedUser(null);
+      refetchConversations();
+    },
+    onError: () => {
+      toast.error('Erro ao encerrar conversa');
+    },
+  });
+
+  const reopenConversation = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser) return;
+
+      // Mark all messages as open
+      const { error } = await supabase
+        .from('support_messages')
+        .update({ conversation_closed: false })
+        .eq('user_id', selectedUser);
+
+      if (error) throw error;
+
+      // Send reopening message
+      await supabase.from('support_messages').insert({
+        user_id: selectedUser,
+        message: "--- Conversa reaberta pelo suporte ---",
+        is_from_admin: true,
+        is_read: false,
+        conversation_closed: false,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Conversa reaberta');
+      refetchConversations();
+      refetchMessages();
+    },
+    onError: () => {
+      toast.error('Erro ao reabrir conversa');
     },
   });
 
@@ -146,6 +223,9 @@ const AdminSupport = () => {
       sendMessage.mutate();
     }
   };
+
+  const selectedConversation = conversations?.find(c => c.user_id === selectedUser);
+  const isConversationClosed = selectedConversation?.is_closed || false;
 
   return (
     <div className="flex h-[calc(100vh-200px)] gap-6">
@@ -166,20 +246,33 @@ const AdminSupport = () => {
                 onClick={() => setSelectedUser(conv.user_id)}
                 className={`w-full p-4 text-left hover:bg-muted/50 transition-colors border-b border-border/50 ${
                   selectedUser === conv.user_id ? 'bg-muted' : ''
-                }`}
+                } ${conv.is_closed ? 'opacity-60' : ''}`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      conv.is_closed ? 'bg-muted' : 'bg-primary/20'
+                    }`}>
+                      {conv.is_closed ? (
+                        <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <User className="w-4 h-4 text-primary" />
+                      )}
                     </div>
                     <span className="font-medium">{conv.full_name}</span>
                   </div>
-                  {conv.unread_count > 0 && (
-                    <Badge className="bg-primary text-primary-foreground">
-                      {conv.unread_count}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {conv.is_closed && (
+                      <Badge variant="secondary" className="text-xs">
+                        Encerrada
+                      </Badge>
+                    )}
+                    {conv.unread_count > 0 && (
+                      <Badge className="bg-primary text-primary-foreground">
+                        {conv.unread_count}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground truncate pl-10">
                   {conv.last_message}
@@ -199,17 +292,50 @@ const AdminSupport = () => {
           <>
             {/* Chat Header */}
             <div className="p-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isConversationClosed ? 'bg-muted' : 'bg-primary/20'
+                  }`}>
+                    {isConversationClosed ? (
+                      <CheckCircle className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <User className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{selectedConversation?.full_name}</p>
+                      {isConversationClosed && (
+                        <Badge variant="secondary" className="text-xs">Encerrada</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      ID: {selectedUser.slice(0, 8)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold">
-                    {conversations?.find(c => c.user_id === selectedUser)?.full_name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    ID: {selectedUser.slice(0, 8)}
-                  </p>
+                <div className="flex gap-2">
+                  {isConversationClosed ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => reopenConversation.mutate()}
+                      disabled={reopenConversation.isPending}
+                    >
+                      Reabrir Conversa
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => closeConversation.mutate()}
+                      disabled={closeConversation.isPending}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Encerrar
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -224,13 +350,21 @@ const AdminSupport = () => {
                   >
                     <div
                       className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                        msg.is_from_admin
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
+                        msg.message.includes('--- Conversa') 
+                          ? 'bg-muted/50 text-muted-foreground text-center w-full max-w-full'
+                          : msg.is_from_admin
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
                       }`}
                     >
                       <p className="text-sm">{msg.message}</p>
-                      <p className={`text-xs mt-1 ${msg.is_from_admin ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                      <p className={`text-xs mt-1 ${
+                        msg.message.includes('--- Conversa')
+                          ? 'text-muted-foreground'
+                          : msg.is_from_admin 
+                            ? 'text-primary-foreground/70' 
+                            : 'text-muted-foreground'
+                      }`}>
                         {new Date(msg.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
@@ -242,17 +376,23 @@ const AdminSupport = () => {
 
             {/* Input */}
             <div className="p-4 border-t border-border">
-              <div className="flex gap-3">
-                <Input
-                  placeholder="Escreva a sua mensagem..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                />
-                <Button onClick={handleSend} disabled={sendMessage.isPending || !newMessage.trim()}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
+              {isConversationClosed ? (
+                <div className="text-center text-muted-foreground text-sm py-2">
+                  Esta conversa está encerrada. Reabra para continuar.
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Escreva a sua mensagem..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  />
+                  <Button onClick={handleSend} disabled={sendMessage.isPending || !newMessage.trim()}>
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </>
         ) : (

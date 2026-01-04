@@ -147,6 +147,7 @@ export type Database = {
       }
       support_messages: {
         Row: {
+          conversation_closed: boolean
           created_at: string
           id: string
           is_from_admin: boolean
@@ -155,6 +156,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conversation_closed?: boolean
           created_at?: string
           id?: string
           is_from_admin?: boolean
@@ -163,6 +165,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conversation_closed?: boolean
           created_at?: string
           id?: string
           is_from_admin?: boolean
