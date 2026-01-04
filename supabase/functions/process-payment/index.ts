@@ -103,7 +103,7 @@ serve(async (req) => {
       body: new URLSearchParams({
         client_id: clientId,
         amount: amount.toString(),
-        reference: `socialboost-${userId.slice(0, 8)}-${Date.now()}`,
+        reference: `sb${userId.slice(0, 8)}`,
         phone: phone,
       }),
     });
