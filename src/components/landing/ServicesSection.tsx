@@ -1,48 +1,41 @@
-import { Facebook, Instagram, Youtube, Twitter, Music2, Users } from "lucide-react";
+import { Facebook, Instagram, Youtube, Twitter, Music2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const services = [
   {
     name: "Facebook",
     icon: Facebook,
-    description: "Seguidores, gostos, comentários e partilhas",
+    description: "Seguidores para páginas, curtidas e reações",
     color: "from-blue-500 to-blue-600",
-    price: "Desde 50 MZN",
+    price: "Desde 100 MZN",
   },
   {
     name: "Instagram",
     icon: Instagram,
-    description: "Seguidores, gostos, views e reels",
+    description: "Curtidas, respostagens, alcance e impressões",
     color: "from-pink-500 to-purple-600",
-    price: "Desde 75 MZN",
+    price: "Desde 145 MZN",
   },
   {
     name: "TikTok",
     icon: Music2,
-    description: "Seguidores, gostos, visualizações e partilhas",
+    description: "Seguidores, visualizações e curtidas",
     color: "from-gray-800 to-gray-900",
-    price: "Desde 60 MZN",
+    price: "Desde 100 MZN",
   },
   {
     name: "YouTube",
     icon: Youtube,
-    description: "Subscritores, views, gostos e comentários",
+    description: "Visualizações (máx 10k por dia)",
     color: "from-red-500 to-red-600",
-    price: "Desde 100 MZN",
+    price: "250 MZN por 1000",
   },
   {
     name: "Twitter / X",
     icon: Twitter,
-    description: "Seguidores, retweets, gostos e views",
+    description: "Seguidores, curtidas, visualizações e retweets",
     color: "from-gray-700 to-gray-800",
-    price: "Desde 80 MZN",
-  },
-  {
-    name: "Outros",
-    icon: Users,
-    description: "Telegram, LinkedIn, Spotify e mais",
-    color: "from-accent to-blue-600",
-    price: "Consulte-nos",
+    price: "Desde 120 MZN",
   },
 ];
 

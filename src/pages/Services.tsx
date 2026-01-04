@@ -16,39 +16,28 @@ const platforms = [
 
 const services = {
   facebook: [
-    { id: 1, name: "Seguidores Facebook", price: 50, quantity: 1000, time: "1-24h", description: "Seguidores reais para a sua página" },
-    { id: 2, name: "Gostos em Publicação", price: 30, quantity: 1000, time: "1-12h", description: "Gostos para as suas publicações" },
-    { id: 3, name: "Comentários", price: 100, quantity: 100, time: "1-24h", description: "Comentários personalizados" },
-    { id: 4, name: "Partilhas", price: 80, quantity: 500, time: "1-24h", description: "Partilhas nas suas publicações" },
-    { id: 5, name: "Visualizações de Vídeo", price: 25, quantity: 1000, time: "1-6h", description: "Views para os seus vídeos" },
+    { id: 1, name: "Seguidores para Páginas", price: 350, quantity: 1000, time: "1-24h", description: "Seguidores reais para a sua página" },
+    { id: 2, name: "Curtidas", price: 100, quantity: 1000, time: "1-12h", description: "Curtidas para as suas publicações" },
+    { id: 3, name: "Reação Amei", price: 120, quantity: 1000, time: "1-12h", description: "Reações de amor nas publicações" },
   ],
   instagram: [
-    { id: 1, name: "Seguidores Instagram", price: 75, quantity: 1000, time: "1-24h", description: "Seguidores de qualidade" },
-    { id: 2, name: "Gostos em Foto/Reel", price: 40, quantity: 1000, time: "1-12h", description: "Gostos para o seu conteúdo" },
-    { id: 3, name: "Visualizações de Reels", price: 20, quantity: 1000, time: "1-6h", description: "Views para Reels" },
-    { id: 4, name: "Comentários", price: 120, quantity: 100, time: "1-24h", description: "Comentários autênticos" },
-    { id: 5, name: "Story Views", price: 15, quantity: 1000, time: "1-3h", description: "Visualizações nos Stories" },
+    { id: 1, name: "Curtidas", price: 145, quantity: 1000, time: "1-12h", description: "Curtidas para o seu conteúdo" },
+    { id: 2, name: "Respostagem", price: 200, quantity: 1000, time: "1-24h", description: "Respostagens do seu conteúdo" },
+    { id: 3, name: "Alcance + Impressões + Visitas no Perfil", price: 170, quantity: 1000, time: "1-24h", description: "Aumente o alcance e impressões" },
   ],
   tiktok: [
-    { id: 1, name: "Seguidores TikTok", price: 60, quantity: 1000, time: "1-24h", description: "Seguidores activos" },
-    { id: 2, name: "Gostos em Vídeo", price: 35, quantity: 1000, time: "1-12h", description: "Gostos nos seus vídeos" },
-    { id: 3, name: "Visualizações", price: 15, quantity: 1000, time: "1-6h", description: "Views reais" },
-    { id: 4, name: "Partilhas", price: 70, quantity: 500, time: "1-24h", description: "Partilhas dos vídeos" },
-    { id: 5, name: "Comentários", price: 90, quantity: 100, time: "1-24h", description: "Comentários relevantes" },
+    { id: 1, name: "Seguidores", price: 370, quantity: 1000, time: "1-24h", description: "Seguidores activos no TikTok" },
+    { id: 2, name: "Visualizações", price: 100, quantity: 1000, time: "1-6h", description: "Visualizações nos seus vídeos" },
+    { id: 3, name: "Curtidas", price: 130, quantity: 1000, time: "1-12h", description: "Curtidas nos seus vídeos" },
   ],
   youtube: [
-    { id: 1, name: "Subscritores", price: 100, quantity: 1000, time: "1-48h", description: "Subscritores para o canal" },
-    { id: 2, name: "Visualizações", price: 40, quantity: 1000, time: "1-24h", description: "Views nos vídeos" },
-    { id: 3, name: "Gostos", price: 50, quantity: 1000, time: "1-24h", description: "Gostos nos vídeos" },
-    { id: 4, name: "Comentários", price: 150, quantity: 100, time: "1-48h", description: "Comentários personalizados" },
-    { id: 5, name: "Horas de Watch Time", price: 500, quantity: 1000, time: "3-7 dias", description: "Horas de visualização" },
+    { id: 1, name: "Visualizações", price: 250, quantity: 1000, time: "1-24h", description: "Visualizações nos vídeos (máx 10k/dia)" },
   ],
   twitter: [
-    { id: 1, name: "Seguidores Twitter/X", price: 80, quantity: 1000, time: "1-24h", description: "Seguidores activos" },
-    { id: 2, name: "Gostos", price: 40, quantity: 1000, time: "1-12h", description: "Gostos nos tweets" },
-    { id: 3, name: "Retweets", price: 60, quantity: 500, time: "1-24h", description: "Retweets nos seus posts" },
-    { id: 4, name: "Visualizações", price: 20, quantity: 1000, time: "1-6h", description: "Views nos tweets" },
-    { id: 5, name: "Comentários", price: 100, quantity: 100, time: "1-24h", description: "Respostas autênticas" },
+    { id: 1, name: "Seguidores", price: 480, quantity: 1000, time: "1-24h", description: "Seguidores activos no Twitter/X" },
+    { id: 2, name: "Curtidas", price: 150, quantity: 1000, time: "1-12h", description: "Curtidas nos tweets" },
+    { id: 3, name: "Visualizações em Vídeos", price: 120, quantity: 1000, time: "1-6h", description: "Visualizações nos vídeos" },
+    { id: 4, name: "Retweets", price: 250, quantity: 1000, time: "1-24h", description: "Retweets nos seus posts" },
   ],
 };
 
