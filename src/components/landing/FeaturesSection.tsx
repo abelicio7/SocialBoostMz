@@ -9,7 +9,7 @@ const features = [
   {
     icon: Clock,
     title: "Entrega Rápida",
-    description: "Maioria dos pedidos inicia a partir de 10 minutos após confirmação do pagamento.",
+    description: "Maioria dos pedidos inicia em 1-24 horas após confirmação do pagamento.",
   },
   {
     icon: Headphones,
