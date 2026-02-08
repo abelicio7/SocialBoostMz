@@ -119,7 +119,7 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  // Real-time subscription for messages
+  // Real-time subscription for messages (listen to all events for full sync with admin)
   useEffect(() => {
     if (!user) return;
 
@@ -128,7 +128,7 @@ const Dashboard = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'support_messages',
           filter: `user_id=eq.${user.id}`,
