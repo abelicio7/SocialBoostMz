@@ -199,7 +199,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-primary" />
@@ -210,140 +210,143 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Balance Display */}
-          <div className="p-4 rounded-xl bg-muted/50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-primary" />
-              <span className="text-sm text-muted-foreground">Saldo disponível</span>
+        <div className="overflow-y-auto flex-1 -mx-6 px-6">
+          <form id="new-order-form" onSubmit={handleSubmit} className="space-y-6 pb-2">
+            {/* Balance Display */}
+            <div className="p-4 rounded-xl bg-muted/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-primary" />
+                <span className="text-sm text-muted-foreground">Saldo disponível</span>
+              </div>
+              <span className="font-bold text-primary">{balance.toLocaleString()} MZN</span>
             </div>
-            <span className="font-bold text-primary">{balance.toLocaleString()} MZN</span>
-          </div>
 
-          {/* Service Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="service">Serviço</Label>
-            <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-              <SelectTrigger id="service">
-                <SelectValue placeholder="Seleccione um serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                {groupedServices && Object.entries(groupedServices).map(([platform, platformServices]) => (
-                  <div key={platform}>
-                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                      {platformLabels[platform] || platform}
+            {/* Service Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="service">Serviço</Label>
+              <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                <SelectTrigger id="service">
+                  <SelectValue placeholder="Seleccione um serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groupedServices && Object.entries(groupedServices).map(([platform, platformServices]) => (
+                    <div key={platform}>
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                        {platformLabels[platform] || platform}
+                      </div>
+                      {platformServices.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.name} - {Number(service.price_per_1000).toLocaleString()} MZN/1000
+                        </SelectItem>
+                      ))}
                     </div>
-                    {platformServices.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name} - {Number(service.price_per_1000).toLocaleString()} MZN/1000
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Link Input */}
-          <div className="space-y-2">
-            <Label htmlFor="link">Link do Perfil/Publicação</Label>
-            <Input
-              id="link"
-              type="url"
-              placeholder="https://..."
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Insira o link do perfil ou publicação onde deseja receber o serviço
-            </p>
-          </div>
-
-          {/* Quantity Input */}
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantidade</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min={selectedService?.min_quantity || 100}
-              max={selectedService?.max_quantity || 100000}
-              step={100}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              required
-            />
-            {selectedService && (
+            {/* Link Input */}
+            <div className="space-y-2">
+              <Label htmlFor="link">Link do Perfil/Publicação</Label>
+              <Input
+                id="link"
+                type="url"
+                placeholder="https://..."
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                required
+              />
               <p className="text-xs text-muted-foreground">
-                Mín: {selectedService.min_quantity.toLocaleString()} • Máx: {selectedService.max_quantity.toLocaleString()} • Entrega: {selectedService.estimated_time}
-              </p>
-            )}
-          </div>
-
-          {/* Price Summary */}
-          {selectedService && (
-            <div className="p-4 rounded-xl bg-card border border-border space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Serviço</span>
-                <span>{selectedService.name}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Quantidade</span>
-                <span>{quantity.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Preço por 1000</span>
-                <span>{Number(selectedService.price_per_1000).toLocaleString()} MZN</span>
-              </div>
-              <div className="border-t border-border pt-2 flex justify-between font-bold">
-                <span>Total</span>
-                <span className={hasEnoughBalance ? "text-primary" : "text-destructive"}>
-                  {totalPrice.toLocaleString()} MZN
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Insufficient Balance Warning */}
-          {selectedService && !hasEnoughBalance && (
-            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
-              <p className="text-sm text-destructive">
-                Saldo insuficiente. Carregue mais {(totalPrice - balance).toLocaleString()} MZN.
+                Insira o link do perfil ou publicação onde deseja receber o serviço
               </p>
             </div>
-          )}
 
-          {/* Warning */}
-          <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              Pode ocorrer queda de até 10% após entrega. Garantia de refill até 48h.
-            </p>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={!selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
-            >
-              {createOrder.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  A processar...
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Confirmar Pedido
-                </>
+            {/* Quantity Input */}
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantidade</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min={selectedService?.min_quantity || 100}
+                max={selectedService?.max_quantity || 100000}
+                step={100}
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                required
+              />
+              {selectedService && (
+                <p className="text-xs text-muted-foreground">
+                  Mín: {selectedService.min_quantity.toLocaleString()} • Máx: {selectedService.max_quantity.toLocaleString()} • Entrega: {selectedService.estimated_time}
+                </p>
               )}
-            </Button>
-          </DialogFooter>
-        </form>
+            </div>
+
+            {/* Price Summary */}
+            {selectedService && (
+              <div className="p-4 rounded-xl bg-card border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Serviço</span>
+                  <span>{selectedService.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Quantidade</span>
+                  <span>{quantity.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Preço por 1000</span>
+                  <span>{Number(selectedService.price_per_1000).toLocaleString()} MZN</span>
+                </div>
+                <div className="border-t border-border pt-2 flex justify-between font-bold">
+                  <span>Total</span>
+                  <span className={hasEnoughBalance ? "text-primary" : "text-destructive"}>
+                    {totalPrice.toLocaleString()} MZN
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Insufficient Balance Warning */}
+            {selectedService && !hasEnoughBalance && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                <p className="text-sm text-destructive">
+                  Saldo insuficiente. Carregue mais {(totalPrice - balance).toLocaleString()} MZN.
+                </p>
+              </div>
+            )}
+
+            {/* Warning */}
+            <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                Pode ocorrer queda de até 10% após entrega. Garantia de refill até 48h.
+              </p>
+            </div>
+          </form>
+        </div>
+
+        <DialogFooter className="pt-4 border-t border-border flex-shrink-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            type="submit"
+            form="new-order-form"
+            disabled={!selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
+          >
+            {createOrder.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                A processar...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Confirmar Pedido
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
