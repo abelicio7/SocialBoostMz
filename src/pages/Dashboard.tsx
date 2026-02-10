@@ -453,16 +453,16 @@ const Dashboard = () => {
                   </Link>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-border overflow-hidden">
-                  <table className="w-full">
+              <div className="rounded-2xl border border-border overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
                     <thead className="bg-card">
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">ID</th>
-                        <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Serviço</th>
-                        <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Quantidade</th>
-                        <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Data</th>
-                        <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-                        <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Valor</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">ID</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Serviço</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Qtd</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -470,19 +470,19 @@ const Dashboard = () => {
                         const status = statusConfig[order.status as keyof typeof statusConfig];
                         return (
                           <tr key={order.id} className="hover:bg-card/50 transition-colors">
-                            <td className="px-6 py-4 text-sm font-mono">#{order.id.slice(0, 8)}</td>
-                            <td className="px-6 py-4 text-sm">{(order.services as any)?.name}</td>
-                            <td className="px-6 py-4 text-sm">{order.quantity.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                            <td className="px-4 py-3 text-sm font-mono">#{order.id.slice(0, 8)}</td>
+                            <td className="px-4 py-3 text-sm">{(order.services as any)?.name}</td>
+                            <td className="px-4 py-3 text-sm">{order.quantity.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
                               {new Date(order.created_at).toLocaleDateString('pt-PT')}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-4 py-3">
                               <Badge className={status.color}>
                                 <status.icon className="w-3 h-3 mr-1" />
                                 {status.label}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-sm text-right font-medium">{Number(order.total_price).toLocaleString()} MZN</td>
+                            <td className="px-4 py-3 text-sm text-right font-medium">{Number(order.total_price).toLocaleString()} MZN</td>
                           </tr>
                         );
                       })}
