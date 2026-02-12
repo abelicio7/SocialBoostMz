@@ -7,35 +7,35 @@ const services = [
     icon: Facebook,
     description: "Seguidores para páginas, curtidas e reações",
     color: "from-blue-500 to-blue-600",
-    price: "Desde 100 MZN",
+    price: "A partir de 10 MZN (100 und.)",
   },
   {
     name: "Instagram",
     icon: Instagram,
     description: "Curtidas, respostagens, alcance e impressões",
     color: "from-pink-500 to-purple-600",
-    price: "Desde 145 MZN",
+    price: "A partir de 14.5 MZN (100 und.)",
   },
   {
     name: "TikTok",
     icon: Music2,
     description: "Seguidores, visualizações e curtidas",
     color: "from-gray-800 to-gray-900",
-    price: "Desde 100 MZN",
+    price: "A partir de 10 MZN (100 und.)",
   },
   {
     name: "YouTube",
     icon: Youtube,
     description: "Visualizações (máx 10k por dia)",
     color: "from-red-500 to-red-600",
-    price: "250 MZN por 1000",
+    price: "A partir de 25 MZN (100 und.)",
   },
   {
     name: "Twitter / X",
     icon: Twitter,
     description: "Seguidores, curtidas, visualizações e retweets",
     color: "from-gray-700 to-gray-800",
-    price: "Desde 120 MZN",
+    price: "A partir de 12 MZN (100 und.)",
   },
 ];
 
@@ -52,7 +52,7 @@ const ServicesSection = () => {
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Oferecemos serviços de crescimento para as principais plataformas sociais. 
-            Escolha a rede e comece a crescer hoje.
+            Peça a partir de apenas <strong className="text-primary">100 unidades</strong> — comece a crescer hoje!
           </p>
         </div>
 

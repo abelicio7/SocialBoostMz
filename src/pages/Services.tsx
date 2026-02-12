@@ -79,7 +79,7 @@ const Services = () => {
               Escolha a Sua Rede Social
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Seleccione a plataforma e o serviço que pretende. Todos os preços são em MZN.
+              Seleccione a plataforma e o serviço que pretende. Pedido mínimo de apenas <strong className="text-primary">100 unidades</strong>. Preços por 1.000 unidades em MZN.
             </p>
           </div>
 
@@ -138,11 +138,14 @@ const Services = () => {
                     </Badge>
                   </div>
 
-                  <div className="flex items-end justify-between mt-6">
+                    <div className="flex items-end justify-between mt-6">
                     <div>
-                      <p className="text-sm text-muted-foreground">Por 1.000</p>
+                      <p className="text-xs text-muted-foreground">Preço por 1.000 unidades</p>
                       <p className="text-2xl font-bold text-primary">
                         {Number(service.price_per_1000).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">MZN</span>
+                      </p>
+                      <p className="text-xs text-success font-medium mt-0.5">
+                        Mín. 100 und. = {(Number(service.price_per_1000) / 10).toLocaleString()} MZN
                       </p>
                     </div>
                     <Button 
