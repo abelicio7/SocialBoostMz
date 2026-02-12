@@ -21,10 +21,14 @@ const CTASection = () => {
             Pronto Para <span className="text-gradient-gold">Crescer</span>?
           </h2>
 
-          <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-4 max-w-xl mx-auto">
             Junte-se a milhares de moçambicanos que já estão a impulsionar 
             as suas redes sociais com o SocialBoostMz.
           </p>
+
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-success/10 border border-success/20 text-success text-sm font-semibold mb-10">
+            🎁 Crie a sua conta e receba <strong>50 MT grátis</strong> para experimentar!
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/auth">

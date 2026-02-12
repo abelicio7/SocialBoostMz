@@ -14,9 +14,14 @@ const HeroSection = () => {
       <div className="container relative z-10 px-4 py-20 md:py-32">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4 animate-fade-in">
             <Zap className="w-4 h-4" />
             <span>Líder em Crescimento Social em Moçambique</span>
+          </div>
+
+          {/* Welcome bonus banner */}
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-success/10 border border-success/20 text-success text-sm font-semibold mb-8 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+            🎁 <span>Ganhe <strong>50 MT de crédito grátis</strong> ao criar a sua conta!</span>
           </div>
 
           {/* Headline */}
