@@ -45,7 +45,7 @@ interface NewOrderFormProps {
 const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderFormProps) => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [link, setLink] = useState("");
-  const [quantity, setQuantity] = useState<number>(1000);
+  const [quantity, setQuantity] = useState<number>(100);
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -161,7 +161,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
       toast.success('Pedido criado com sucesso! Aguarde aprovação.');
       onOpenChange(false);
       setLink("");
-      setQuantity(1000);
+      setQuantity(100);
       setSelectedServiceId("");
       navigate('/dashboard');
     },
@@ -206,7 +206,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
             Novo Pedido
           </DialogTitle>
           <DialogDescription>
-            Preencha os dados para criar um novo pedido. O valor será debitado do seu saldo.
+            Preencha os dados para criar um novo pedido. Pode pedir a partir de <strong>100 unidades</strong>. O valor será debitado do seu saldo.
           </DialogDescription>
         </DialogHeader>
 
@@ -275,9 +275,14 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
                 required
               />
               {selectedService && (
-                <p className="text-xs text-muted-foreground">
-                  Mín: {selectedService.min_quantity.toLocaleString()} • Máx: {selectedService.max_quantity.toLocaleString()} • Entrega: {selectedService.estimated_time}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    Mín: {selectedService.min_quantity.toLocaleString()} • Máx: {selectedService.max_quantity.toLocaleString()} • Entrega: {selectedService.estimated_time}
+                  </p>
+                  <p className="text-xs text-success font-medium">
+                    💡 Pode pedir a partir de {selectedService.min_quantity.toLocaleString()} unidades ({(Number(selectedService.price_per_1000) * selectedService.min_quantity / 1000).toLocaleString()} MZN)
+                  </p>
+                </div>
               )}
             </div>
 
