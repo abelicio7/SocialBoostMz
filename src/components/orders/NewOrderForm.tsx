@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { AlertTriangle, Wallet, ShoppingCart, Loader2 } from "lucide-react";
+import { AlertTriangle, Wallet, ShoppingCart, Loader2, Coffee } from "lucide-react";
 
 interface Service {
   id: string;
@@ -49,6 +50,8 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: platformSettings } = usePlatformSettings();
+  const isOnBreak = platformSettings?.is_on_break ?? false;
 
   // Fetch services
   const { data: services } = useQuery({
@@ -211,6 +214,18 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 -mx-6 px-6">
+          {isOnBreak ? (
+            <div className="p-6 rounded-xl bg-warning/10 border border-warning/20 text-center space-y-3">
+              <Coffee className="w-10 h-10 text-warning mx-auto" />
+              <h3 className="font-semibold text-warning">Plataforma em Intervalo</h3>
+              <p className="text-sm text-muted-foreground">
+                {platformSettings?.break_message || "Estamos em intervalo. Voltamos em breve!"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Não é possível criar pedidos neste momento. Tente novamente mais tarde.
+              </p>
+            </div>
+          ) : (
           <form id="new-order-form" onSubmit={handleSubmit} className="space-y-6 pb-2">
             {/* Balance Display */}
             <div className="p-4 rounded-xl bg-muted/50 flex items-center justify-between">
@@ -328,6 +343,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
               </p>
             </div>
           </form>
+          )}
         </div>
 
         <DialogFooter className="pt-4 border-t border-border flex-shrink-0">
@@ -337,7 +353,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
           <Button 
             type="submit"
             form="new-order-form"
-            disabled={!selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
+            disabled={isOnBreak || !selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
           >
             {createOrder.isPending ? (
               <>
