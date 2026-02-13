@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import NewOrderForm from "@/components/orders/NewOrderForm";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
+import BreakBanner from "@/components/dashboard/BreakBanner";
 import {
   Zap,
   Wallet,
@@ -284,6 +285,7 @@ const Dashboard = () => {
 
         {/* Content */}
         <div className="p-6">
+          <BreakBanner />
           {activeTab === "overview" && (
             <div className="space-y-8">
               {/* Welcome */}

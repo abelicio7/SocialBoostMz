@@ -1,4 +1,5 @@
 import AdminStats from "@/components/admin/AdminStats";
+import AdminBreakControl from "@/components/admin/AdminBreakControl";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,12 @@ const AdminDashboard = () => {
       </div>
 
       <AdminStats />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <AdminBreakControl />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
