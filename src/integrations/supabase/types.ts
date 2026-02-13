@@ -68,6 +68,30 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          break_end_time: string | null
+          break_message: string | null
+          id: string
+          is_on_break: boolean
+          updated_at: string
+        }
+        Insert: {
+          break_end_time?: string | null
+          break_message?: string | null
+          id?: string
+          is_on_break?: boolean
+          updated_at?: string
+        }
+        Update: {
+          break_end_time?: string | null
+          break_message?: string | null
+          id?: string
+          is_on_break?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accepted_refund_policy: boolean
