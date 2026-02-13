@@ -27,7 +27,7 @@ const CTASection = () => {
           </p>
 
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-success/10 border border-success/20 text-success text-sm font-semibold mb-10">
-            🎁 Crie a sua conta e receba <strong>50 MT grátis</strong> para experimentar!
+            🎁 Crie a sua conta e receba <strong>35 MT grátis</strong> para experimentar!
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
