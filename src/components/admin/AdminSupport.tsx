@@ -5,8 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, X, CheckCircle } from "lucide-react";
+import { Send, User, X, CheckCircle, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Conversation {
   user_id: string;
@@ -20,8 +26,34 @@ interface Conversation {
 const AdminSupport = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [newConvoOpen, setNewConvoOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Fetch all users for new conversation dialog
+  const { data: allUsers } = useQuery({
+    queryKey: ['admin-all-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone')
+        .order('full_name', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredUsers = allUsers?.filter(u => {
+    const search = userSearch.toLowerCase();
+    return (u.full_name?.toLowerCase().includes(search) || u.phone?.includes(search) || u.id.includes(search));
+  }) || [];
+
+  const startConversation = (userId: string) => {
+    setSelectedUser(userId);
+    setNewConvoOpen(false);
+    setUserSearch("");
+  };
 
   // Fetch conversations list
   const { data: conversations, refetch: refetchConversations } = useQuery({
@@ -230,9 +262,54 @@ const AdminSupport = () => {
   return (
     <div className="flex h-[calc(100vh-200px)] gap-6">
       {/* Conversations List */}
-      <div className="w-80 rounded-xl border border-border bg-card overflow-hidden">
-        <div className="p-4 border-b border-border">
+      <div className="w-80 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-border flex items-center justify-between">
           <h3 className="font-semibold">Conversas</h3>
+          <Dialog open={newConvoOpen} onOpenChange={setNewConvoOpen}>
+            <Button variant="outline" size="sm" onClick={() => setNewConvoOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" />
+              Nova
+            </Button>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Nova Conversa</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Pesquisar por nome, telefone ou ID..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <ScrollArea className="h-64">
+                  <div className="space-y-1">
+                    {filteredUsers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum utilizador encontrado</p>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => startConversation(u.id)}
+                          className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                            <User className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{u.full_name || 'Sem nome'}</p>
+                            <p className="text-xs text-muted-foreground truncate">{u.phone || u.id.slice(0, 8)}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         <ScrollArea className="h-[calc(100%-60px)]">
           {conversations?.length === 0 ? (
