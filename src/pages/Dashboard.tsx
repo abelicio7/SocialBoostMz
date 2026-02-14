@@ -256,7 +256,7 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-20 md:pb-0">
         {/* Top Bar */}
         <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
@@ -699,6 +699,26 @@ const Dashboard = () => {
         open={topUpDialogOpen}
         onOpenChange={setTopUpDialogOpen}
       />
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border px-2 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-center justify-around">
+          {sidebarItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center gap-1 py-3 px-2 min-w-0 flex-1 transition-colors ${
+                activeTab === item.id
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium truncate">{item.name}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 };
