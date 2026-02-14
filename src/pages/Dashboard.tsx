@@ -27,7 +27,16 @@ import {
   ArrowUpRight,
   TrendingUp,
   Send,
+  Menu,
+  Settings,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const statusConfig = {
   pending: { label: "Pendente", color: "bg-warning/20 text-warning", icon: Clock },
@@ -260,24 +269,82 @@ const Dashboard = () => {
         {/* Top Bar */}
         <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="md:hidden">
-              <Link to="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-primary-foreground" />
-                </div>
-              </Link>
+            <div className="flex items-center gap-3">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-muted transition-colors">
+                    <Menu className="w-5 h-5" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0">
+                  <SheetHeader className="p-6 border-b border-border">
+                    <SheetTitle>
+                      <Link to="/" className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center">
+                          <Zap className="w-5 h-5 text-primary-foreground" />
+                        </div>
+                        <span className="font-display text-lg font-bold">
+                          Social<span className="text-primary">Boost</span>
+                        </span>
+                      </Link>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <nav className="p-4">
+                    <ul className="space-y-1">
+                      {sidebarItems.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => setActiveTab(item.id)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                              activeTab === item.id
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            }`}
+                          >
+                            <item.icon className="w-5 h-5" />
+                            {item.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {isAdmin && (
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <Link to="/admin">
+                          <Button variant="outline" className="w-full">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Painel Admin
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </nav>
+                  <div className="mt-auto p-4 border-t border-border absolute bottom-0 left-0 right-0">
+                    <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleSignOut}>
+                      <LogOut className="w-5 h-5 mr-3" />
+                      Terminar Sessão
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <div className="md:hidden">
+                <Link to="/" className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                </Link>
+              </div>
+              <h1 className="font-display text-xl font-bold hidden md:block">
+                {sidebarItems.find((i) => i.id === activeTab)?.name}
+              </h1>
             </div>
-            <h1 className="font-display text-xl font-bold hidden md:block">
-              {sidebarItems.find((i) => i.id === activeTab)?.name}
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border">
-                <Wallet className="w-5 h-5 text-primary" />
-                <span className="font-bold text-primary">{balance.toLocaleString()} MZN</span>
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-2 px-3 py-2 md:px-4 rounded-xl bg-card border border-border">
+                <Wallet className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                <span className="font-bold text-primary text-sm md:text-base">{balance.toLocaleString()} MZN</span>
               </div>
               <Button variant="default" size="sm" onClick={() => setTopUpDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Saldo
+                <Plus className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Adicionar Saldo</span>
               </Button>
             </div>
           </div>
