@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, X, CheckCircle, Plus, Search } from "lucide-react";
+import { Send, User, X, CheckCircle, Plus, Search, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -260,9 +260,9 @@ const AdminSupport = () => {
   const isConversationClosed = selectedConversation?.is_closed || false;
 
   return (
-    <div className="flex h-[calc(100vh-200px)] gap-6">
-      {/* Conversations List */}
-      <div className="w-80 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+    <div className="flex h-[calc(100vh-200px)] gap-0 md:gap-6">
+      {/* Conversations List - hidden on mobile when a conversation is selected */}
+      <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-80 rounded-xl border border-border bg-card overflow-hidden flex-col`}>
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h3 className="font-semibold">Conversas</h3>
           <Dialog open={newConvoOpen} onOpenChange={setNewConvoOpen}>
@@ -363,14 +363,20 @@ const AdminSupport = () => {
         </ScrollArea>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+      {/* Chat Area - hidden on mobile when no conversation is selected */}
+      <div className={`${selectedUser ? 'flex' : 'hidden md:flex'} flex-1 rounded-xl border border-border bg-card overflow-hidden flex-col`}>
         {selectedUser ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-border">
+            <div className="p-3 md:p-4 border-b border-border">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="md:hidden p-1 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     isConversationClosed ? 'bg-muted' : 'bg-primary/20'
                   }`}>
@@ -426,7 +432,7 @@ const AdminSupport = () => {
                     className={`flex ${msg.is_from_admin ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                      className={`max-w-[85%] md:max-w-[70%] px-4 py-2 rounded-2xl ${
                         msg.message.includes('--- Conversa') 
                           ? 'bg-muted/50 text-muted-foreground text-center w-full max-w-full'
                           : msg.is_from_admin
@@ -452,7 +458,7 @@ const AdminSupport = () => {
             </ScrollArea>
 
             {/* Input */}
-            <div className="p-4 border-t border-border">
+            <div className="p-3 md:p-4 border-t border-border">
               {isConversationClosed ? (
                 <div className="text-center text-muted-foreground text-sm py-2">
                   Esta conversa está encerrada. Reabra para continuar.

@@ -3,7 +3,7 @@ import AdminBreakControl from "@/components/admin/AdminBreakControl";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, MessageSquare } from "lucide-react";
+import { ShoppingCart, MessageSquare, User } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const AdminDashboard = () => {
@@ -36,6 +36,36 @@ const AdminDashboard = () => {
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Fetch recent support messages for preview
+  const { data: recentMessages } = useQuery({
+    queryKey: ['admin-recent-messages'],
+    queryFn: async () => {
+      const { data: msgs, error } = await supabase
+        .from('support_messages')
+        .select('id, user_id, message, created_at, is_from_admin, is_read')
+        .eq('is_from_admin', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      if (!msgs || msgs.length === 0) return [];
+
+      // Get unique user IDs
+      const userIds = [...new Set(msgs.map(m => m.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+
+      return msgs.map(m => ({
+        ...m,
+        full_name: profileMap.get(m.user_id) || 'Utilizador',
+      }));
     },
   });
 
@@ -130,20 +160,39 @@ const AdminDashboard = () => {
               Ver todas
             </Link>
           </div>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                {(unreadMessages as any)?.count > 0
-                  ? `${(unreadMessages as any).count} mensagens por ler`
-                  : 'Sem mensagens pendentes'}
-              </p>
-              <Link to="/admin/suporte">
-                <button className="mt-3 text-primary text-sm hover:underline">
-                  Abrir suporte
-                </button>
-              </Link>
-            </div>
+          <div className="space-y-3">
+            {!recentMessages || recentMessages.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">Sem mensagens pendentes</p>
+                </div>
+              </div>
+            ) : (
+              recentMessages.map((msg) => (
+                <Link
+                  key={msg.id}
+                  to="/admin/suporte"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-sm truncate">{msg.full_name}</p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(msg.created_at).toLocaleString('pt-PT', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">{msg.message}</p>
+                  </div>
+                  {!msg.is_read && (
+                    <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                  )}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>
