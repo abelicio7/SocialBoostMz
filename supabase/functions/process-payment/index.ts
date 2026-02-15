@@ -136,10 +136,10 @@ serve(async (req) => {
       const currentBalance = Number(profile.balance) || 0;
       const newBalance = currentBalance + amount;
 
-      // Update balance
+      // Update balance and auto-unblock user
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ balance: newBalance })
+        .update({ balance: newBalance, is_blocked: false })
         .eq("id", userId);
 
       if (updateError) {
