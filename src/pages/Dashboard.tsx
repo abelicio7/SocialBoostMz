@@ -408,7 +408,7 @@ const Dashboard = () => {
               {/* Quick Actions */}
               <div>
                 <h2 className="font-display text-lg font-bold mb-4">Acções Rápidas</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div 
                     onClick={() => setOrderDialogOpen(true)}
                     className="p-6 rounded-2xl glass-card premium-border group hover:scale-[1.02] transition-all cursor-pointer"
@@ -460,6 +460,25 @@ const Dashboard = () => {
                       <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                   </div>
+                  <a 
+                    href="https://chat.whatsapp.com/EQNlPTLb15FJFqFWDwUiLI?mode=gi_t"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-6 rounded-2xl glass-card premium-border group hover:scale-[1.02] transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                          <MessageCircle className="w-6 h-6 text-success" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Grupo WhatsApp</h3>
+                          <p className="text-sm text-muted-foreground">Promoções & Assistência</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-success transition-colors" />
+                    </div>
+                  </a>
                 </div>
               </div>
 
