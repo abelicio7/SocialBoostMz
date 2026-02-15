@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, User, X, CheckCircle, Plus, Search, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,8 @@ const AdminSupport = () => {
   const [userSearch, setUserSearch] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const { playSound } = useNotificationSound();
+  const prevUnreadCountRef = useRef<number>(0);
 
   // Fetch all users for new conversation dialog
   const { data: allUsers } = useQuery({
@@ -140,7 +143,26 @@ const AdminSupport = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_messages',
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          // Play sound only for user messages (not admin's own)
+          if (!newMsg.is_from_admin) {
+            playSound();
+          }
+          refetchConversations();
+          if (selectedUser) {
+            refetchMessages();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'support_messages',
         },
@@ -156,7 +178,7 @@ const AdminSupport = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedUser, refetchConversations, refetchMessages]);
+  }, [selectedUser, refetchConversations, refetchMessages, playSound]);
 
   // Auto-scroll to bottom
   useEffect(() => {
