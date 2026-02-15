@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import NewOrderForm from "@/components/orders/NewOrderForm";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
 import BreakBanner from "@/components/dashboard/BreakBanner";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 import {
   Zap,
   Wallet,
@@ -50,10 +51,12 @@ const Dashboard = () => {
   const [newMessage, setNewMessage] = useState("");
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { playSound } = useNotificationSound();
 
   // Redirect if not logged in
   useEffect(() => {
@@ -129,6 +132,20 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  // Count unread admin messages
+  useEffect(() => {
+    if (!messages) return;
+    const unread = messages.filter(m => m.is_from_admin && !m.is_read).length;
+    setUnreadSupportCount(unread);
+  }, [messages]);
+
+  // Clear unread count when viewing support tab
+  useEffect(() => {
+    if (activeTab === 'support') {
+      setUnreadSupportCount(0);
+    }
+  }, [activeTab]);
+
   // Real-time subscription for messages (listen to all events for full sync with admin)
   useEffect(() => {
     if (!user) return;
@@ -138,7 +155,27 @@ const Dashboard = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_messages',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          // Play sound only for admin replies
+          if (newMsg.is_from_admin) {
+            playSound();
+            if (activeTab !== 'support') {
+              setUnreadSupportCount(prev => prev + 1);
+            }
+          }
+          refetchMessages();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'support_messages',
           filter: `user_id=eq.${user.id}`,
@@ -152,7 +189,7 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, refetchMessages]);
+  }, [user, refetchMessages, playSound, activeTab]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -239,6 +276,11 @@ const Dashboard = () => {
                 >
                   <item.icon className="w-5 h-5" />
                   {item.name}
+                  {item.id === 'support' && unreadSupportCount > 0 && (
+                    <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                      {unreadSupportCount}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
@@ -303,6 +345,11 @@ const Dashboard = () => {
                           >
                             <item.icon className="w-5 h-5" />
                             {item.name}
+                            {item.id === 'support' && unreadSupportCount > 0 && (
+                              <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                                {unreadSupportCount}
+                              </span>
+                            )}
                           </button>
                         </li>
                       ))}
@@ -799,7 +846,14 @@ const Dashboard = () => {
                   : "text-muted-foreground"
               }`}
             >
-              <item.icon className="w-5 h-5" />
+              <div className="relative">
+                <item.icon className="w-5 h-5" />
+                {item.id === 'support' && unreadSupportCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[8px] font-bold">
+                    {unreadSupportCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium truncate">{item.name}</span>
             </button>
           ))}
