@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { AlertTriangle, Wallet, ShoppingCart, Loader2, Coffee } from "lucide-react";
+import { AlertTriangle, Wallet, ShoppingCart, Loader2, Coffee, Ban } from "lucide-react";
 
 interface Service {
   id: string;
@@ -53,6 +53,24 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
   const { data: platformSettings } = usePlatformSettings();
   const isOnBreak = platformSettings?.is_on_break ?? false;
 
+  // Fetch profile for balance and blocked status
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance, is_blocked')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const isBlocked = profile?.is_blocked ?? false;
+
   // Fetch services
   const { data: services } = useQuery({
     queryKey: ['active-services'],
@@ -67,21 +85,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
     },
   });
 
-  // Fetch profile for balance
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+  // Profile already fetched above
 
   // Set preselected service
   useEffect(() => {
@@ -224,7 +228,18 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 -mx-6 px-6">
-          {isOnBreak ? (
+          {isBlocked ? (
+            <div className="p-6 rounded-xl bg-destructive/10 border border-destructive/20 text-center space-y-3">
+              <Ban className="w-10 h-10 text-destructive mx-auto" />
+              <h3 className="font-semibold text-destructive">Conta Bloqueada</h3>
+              <p className="text-sm text-muted-foreground">
+                A sua conta está bloqueada e não pode criar pedidos.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Para desbloquear, faça um recarregamento na sua carteira. A conta será desbloqueada automaticamente.
+              </p>
+            </div>
+          ) : isOnBreak ? (
             <div className="p-6 rounded-xl bg-warning/10 border border-warning/20 text-center space-y-3">
               <Coffee className="w-10 h-10 text-warning mx-auto" />
               <h3 className="font-semibold text-warning">Plataforma em Intervalo</h3>
@@ -363,7 +378,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
           <Button 
             type="submit"
             form="new-order-form"
-            disabled={isOnBreak || !selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
+            disabled={isBlocked || isOnBreak || !selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
           >
             {createOrder.isPending ? (
               <>
