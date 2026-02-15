@@ -2,3 +2,6 @@ project_id = "ocztjpfnixjgmdvmxqsg"
 
 [functions.process-payment]
 verify_jwt = false
+
+[functions.notify-new-order]
+verify_jwt = false

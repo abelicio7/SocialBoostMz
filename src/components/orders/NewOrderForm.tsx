@@ -154,6 +154,16 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         order_id: order.id,
       });
 
+      // 4. Notify admin via email
+      try {
+        await supabase.functions.invoke('notify-new-order', {
+          body: { record: order },
+        });
+      } catch (notifyError) {
+        console.error('Admin notification failed:', notifyError);
+        // Don't fail the order if notification fails
+      }
+
       return order;
     },
     onSuccess: () => {
