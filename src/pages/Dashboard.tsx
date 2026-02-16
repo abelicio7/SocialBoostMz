@@ -12,6 +12,7 @@ import NewOrderForm from "@/components/orders/NewOrderForm";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
 import BreakBanner from "@/components/dashboard/BreakBanner";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
+import OnboardingTutorial, { useShowOnboarding, markOnboardingSeen } from "@/components/onboarding/OnboardingTutorial";
 import {
   Zap,
   Wallet,
@@ -52,6 +53,8 @@ const Dashboard = () => {
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+  const showOnboarding = useShowOnboarding();
+  const [onboardingOpen, setOnboardingOpen] = useState(showOnboarding);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -825,6 +828,12 @@ const Dashboard = () => {
       <NewOrderForm 
         open={orderDialogOpen} 
         onOpenChange={setOrderDialogOpen}
+      />
+
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial
+        open={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
       />
 
       {/* Top Up Dialog */}
