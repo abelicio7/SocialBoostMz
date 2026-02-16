@@ -14,7 +14,7 @@ const CTASection = () => {
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8">
             <Sparkles className="w-4 h-4" />
-            <span>Comece Gratuitamente</span>
+            <span>Comece Agora</span>
           </div>
 
           <h2 className="font-display text-3xl md:text-5xl font-bold mb-6">
@@ -26,9 +26,6 @@ const CTASection = () => {
             as suas redes sociais com o SocialBoostMz.
           </p>
 
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-success/10 border border-success/20 text-success text-sm font-semibold mb-10">
-            🎁 Crie a sua conta e receba <strong>35 MT grátis</strong> para experimentar!
-          </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/auth">

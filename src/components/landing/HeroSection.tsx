@@ -19,10 +19,6 @@ const HeroSection = () => {
             <span>Líder em Crescimento Social em Moçambique</span>
           </div>
 
-          {/* Welcome bonus banner */}
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-success/10 border border-success/20 text-success text-sm font-semibold mb-8 animate-fade-in" style={{ animationDelay: "0.05s" }}>
-            🎁 <span>Ganhe <strong>35 MT de crédito grátis</strong> ao criar a sua conta!</span>
-          </div>
 
           {/* Headline */}
           <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
