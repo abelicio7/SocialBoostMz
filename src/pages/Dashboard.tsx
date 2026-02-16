@@ -12,7 +12,7 @@ import NewOrderForm from "@/components/orders/NewOrderForm";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
 import BreakBanner from "@/components/dashboard/BreakBanner";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
-import OnboardingTutorial, { useShowOnboarding, markOnboardingSeen } from "@/components/onboarding/OnboardingTutorial";
+
 import {
   Zap,
   Wallet,
@@ -53,8 +53,6 @@ const Dashboard = () => {
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
-  const showOnboarding = useShowOnboarding();
-  const [onboardingOpen, setOnboardingOpen] = useState(showOnboarding);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -410,9 +408,18 @@ const Dashboard = () => {
                 <h2 className="font-display text-xl font-bold mb-2">
                   Olá, {profile?.full_name || 'Utilizador'}! 👋
                 </h2>
-                <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-3">
                   Bem-vindo ao seu painel. Aqui pode gerir os seus pedidos e carregar saldo.
                 </p>
+                <a
+                  href="https://www.youtube.com/@SocialBoostMz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  🎬 Veja o tutorial em vídeo no YouTube
+                  <ArrowUpRight className="w-4 h-4" />
+                </a>
               </div>
 
               {/* Stats */}
@@ -830,11 +837,6 @@ const Dashboard = () => {
         onOpenChange={setOrderDialogOpen}
       />
 
-      {/* Onboarding Tutorial */}
-      <OnboardingTutorial
-        open={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-      />
 
       {/* Top Up Dialog */}
       <TopUpDialog
