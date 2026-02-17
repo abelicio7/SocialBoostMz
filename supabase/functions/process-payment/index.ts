@@ -70,7 +70,10 @@ serve(async (req) => {
     // Step 1: Get OAuth token
     const tokenResponse = await fetch("https://e2payments.explicador.co.mz/oauth/token", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { 
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+      },
       body: new URLSearchParams({
         grant_type: "client_credentials",
         client_id: clientId,
@@ -78,16 +81,20 @@ serve(async (req) => {
       }),
     });
 
-    const tokenData = await tokenResponse.json();
-    const token = tokenData.access_token;
+    const tokenText = await tokenResponse.text();
+    console.log("Token response status:", tokenResponse.status);
 
-    if (!token) {
-      console.error("Failed to get E2Payments token:", tokenData);
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenText);
+    } catch {
+      console.error("Token endpoint returned non-JSON:", tokenText.substring(0, 300));
       return new Response(
-        JSON.stringify({ success: false, error: "Erro de autenticação com o serviço de pagamentos" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Serviço de pagamentos indisponível. Tente novamente mais tarde." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    const token = tokenData.access_token;
 
     // Step 2: Process payment
     const endpoint = method === "mpesa"
@@ -99,6 +106,8 @@ serve(async (req) => {
       headers: {
         "Authorization": `Bearer ${token}`,
         "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
         client_id: clientId,
@@ -108,8 +117,24 @@ serve(async (req) => {
       }),
     });
 
-    const paymentResult = await paymentResponse.json();
-    console.log("Payment response:", JSON.stringify(paymentResult, null, 2));
+    const paymentText = await paymentResponse.text();
+    console.log("Payment raw response status:", paymentResponse.status);
+    console.log("Payment raw response:", paymentText.substring(0, 500));
+
+    let paymentResult;
+    try {
+      paymentResult = JSON.parse(paymentText);
+    } catch {
+      console.error("E2Payments returned non-JSON response:", paymentText.substring(0, 300));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Serviço de pagamentos indisponível. Tente novamente mais tarde." 
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    console.log("Payment parsed response:", JSON.stringify(paymentResult, null, 2));
 
     // Check if payment was successful
     if (paymentResult.success && paymentResult.success.includes("sucesso")) {
