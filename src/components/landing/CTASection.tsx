@@ -26,6 +26,15 @@ const CTASection = () => {
             as suas redes sociais com o SocialBoostMz.
           </p>
 
+          <a
+            href="https://youtu.be/o5UD_VLrVMU?si=ka6sCE2_yMrNIF_H"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline mb-6"
+          >
+            🎬 Veja o tutorial em vídeo no YouTube
+            <ArrowRight className="w-4 h-4" />
+          </a>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/auth">

@@ -412,7 +412,7 @@ const Dashboard = () => {
                   Bem-vindo ao seu painel. Aqui pode gerir os seus pedidos e carregar saldo.
                 </p>
                 <a
-                  href="https://www.youtube.com/@SocialBoostMz"
+                  href="https://youtu.be/o5UD_VLrVMU?si=ka6sCE2_yMrNIF_H"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
