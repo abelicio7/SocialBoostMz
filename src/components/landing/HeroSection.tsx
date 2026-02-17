@@ -33,6 +33,18 @@ const HeroSection = () => {
             preços acessíveis e suporte dedicado 24/7.
           </p>
 
+          {/* Tutorial link */}
+          <a
+            href="https://youtu.be/o5UD_VLrVMU?si=ka6sCE2_yMrNIF_H"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline mb-2 animate-fade-in"
+            style={{ animationDelay: "0.25s" }}
+          >
+            🎬 Veja o tutorial em vídeo no YouTube
+            <ArrowRight className="w-4 h-4" />
+          </a>
+
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in" style={{ animationDelay: "0.3s" }}>
             <Link to="/auth">
