@@ -77,7 +77,6 @@ const Footer = () => {
             © {new Date().getFullYear()} SocialBoostMz. Todos os direitos reservados.
           </p>
           <p className="text-xs text-muted-foreground">
-            Feito com 💛 em Moçambique
           </p>
         </div>
       </div>
