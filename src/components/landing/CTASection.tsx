@@ -27,7 +27,7 @@ const CTASection = () => {
           </p>
 
           <a
-            href="https://youtu.be/o5UD_VLrVMU?si=ka6sCE2_yMrNIF_H"
+            href="https://youtu.be/m1tpmMNzHFw?si=jqrSYYlqIeTQxPYY"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline mb-6"
