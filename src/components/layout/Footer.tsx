@@ -51,6 +51,7 @@ const Footer = () => {
               <li><Link to="/dashboard" className="hover:text-primary transition-colors">Suporte Chat</Link></li>
               <li><Link to="/termos" className="hover:text-primary transition-colors">Termos de Uso</Link></li>
               <li><Link to="/privacidade" className="hover:text-primary transition-colors">Política de Privacidade</Link></li>
+              <li><Link to="/api-docs" className="hover:text-primary transition-colors">API de Revenda</Link></li>
             </ul>
           </div>
 
