@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Users, Settings, MessageSquare, LogOut, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Settings, MessageSquare, LogOut, ChevronLeft, Key } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
