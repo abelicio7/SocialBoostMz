@@ -53,6 +53,10 @@ const CTASection = () => {
           <p className="text-sm text-muted-foreground mt-6">
             Sem cartão de crédito. Carregue saldo apenas quando precisar.
           </p>
+          <Link to="/api-docs" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline mt-3">
+            🔌 É revendedor? Conheça a nossa API
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </section>
