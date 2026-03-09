@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.notify-new-order]
 verify_jwt = false
+
+[functions.reseller-api]
+verify_jwt = false

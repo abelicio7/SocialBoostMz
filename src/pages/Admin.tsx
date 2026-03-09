@@ -19,6 +19,7 @@ const mobileNavItems = [
   { title: "Utilizadores", url: "/admin/utilizadores", icon: Users },
   { title: "Serviços", url: "/admin/servicos", icon: Settings },
   { title: "Suporte", url: "/admin/suporte", icon: MessageSquare },
+  { title: "API Keys", url: "/admin/api-keys", icon: Key },
 ];
 
 const Admin = () => {
