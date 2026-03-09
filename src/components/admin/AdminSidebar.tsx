@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Users, Settings, MessageSquare, LogOut, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Settings, MessageSquare, LogOut, ChevronLeft, Key } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ const menuItems = [
   { title: "Utilizadores", url: "/admin/utilizadores", icon: Users },
   { title: "Serviços", url: "/admin/servicos", icon: Settings },
   { title: "Suporte", url: "/admin/suporte", icon: MessageSquare },
+  { title: "API Keys", url: "/admin/api-keys", icon: Key },
 ];
 
 const AdminSidebar = () => {

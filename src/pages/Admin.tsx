@@ -3,7 +3,7 @@ import { useNavigate, Outlet, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/admin/AdminSidebar";
-import { LayoutDashboard, ShoppingCart, Users, Settings, MessageSquare, Menu, LogOut, Zap } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Settings, MessageSquare, Menu, LogOut, Zap, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -19,6 +19,7 @@ const mobileNavItems = [
   { title: "Utilizadores", url: "/admin/utilizadores", icon: Users },
   { title: "Serviços", url: "/admin/servicos", icon: Settings },
   { title: "Suporte", url: "/admin/suporte", icon: MessageSquare },
+  { title: "API Keys", url: "/admin/api-keys", icon: Key },
 ];
 
 const Admin = () => {
