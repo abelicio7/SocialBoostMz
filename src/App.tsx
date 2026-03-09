@@ -20,6 +20,8 @@ import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminServicesPage from "./pages/admin/AdminServicesPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
+import AdminApiKeysPage from "./pages/admin/AdminApiKeysPage";
+import ApiDocs from "./pages/ApiDocs";
 
 const queryClient = new QueryClient();
 
