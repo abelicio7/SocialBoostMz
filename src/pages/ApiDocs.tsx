@@ -7,8 +7,8 @@ import Footer from "@/components/layout/Footer";
 import { Code, Key, ShoppingCart, Eye, Wallet, ArrowRight } from "lucide-react";
 
 const ApiDocs = () => {
-  const baseUrl = `${window.location.origin.replace('://id-preview--', '://').replace('.lovable.app', '.supabase.co')}/functions/v1/reseller-api`;
-  const displayBaseUrl = "https://<project>.supabase.co/functions/v1/reseller-api";
+  const baseUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/reseller-api`;
+  const displayBaseUrl = baseUrl;
 
   const endpoints = [
     {
