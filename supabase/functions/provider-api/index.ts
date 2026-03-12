@@ -76,8 +76,9 @@ serve(async (req) => {
       body = await req.json().catch(() => ({}));
     }
     const action = body?.action || path;
-    if (req.method === "POST" && path === "order") {
-      const { service_id, link, quantity } = await req.json();
+    // POST /order - Create order at provider
+    if (action === "order") {
+      const { service_id, link, quantity } = body;
       const result = await providerRequest("add", {
         service: service_id.toString(),
         link,
@@ -89,8 +90,8 @@ serve(async (req) => {
     }
 
     // POST /status - Check order status at provider
-    if (req.method === "POST" && path === "status") {
-      const { order_id } = await req.json();
+    if (action === "status") {
+      const { order_id } = body;
       const result = await providerRequest("status", { order: order_id.toString() });
       return new Response(JSON.stringify({ success: true, data: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
