@@ -70,9 +70,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/provider-api\/?/, "");
 
-    // --- Public actions (used by order flow, not just admin) ---
-
-    // POST /order - Create order at provider (called internally)
+    // Support both path-based routing and body-based action
+    let body: any = {};
+    if (req.method === "POST") {
+      body = await req.json().catch(() => ({}));
+    }
+    const action = body?.action || path;
     if (req.method === "POST" && path === "order") {
       const { service_id, link, quantity } = await req.json();
       const result = await providerRequest("add", {
