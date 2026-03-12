@@ -35,6 +35,7 @@ interface Service {
   daily_limit: number;
   estimated_time: string;
   description: string | null;
+  provider_service_id: string | null;
 }
 
 interface NewOrderFormProps {
