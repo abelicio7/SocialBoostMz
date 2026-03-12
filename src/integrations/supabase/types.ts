@@ -62,6 +62,8 @@ export type Database = {
           created_at: string
           id: string
           link: string
+          provider_order_id: string | null
+          provider_status: string | null
           quantity: number
           service_id: string
           status: Database["public"]["Enums"]["order_status"]
@@ -74,6 +76,8 @@ export type Database = {
           created_at?: string
           id?: string
           link: string
+          provider_order_id?: string | null
+          provider_status?: string | null
           quantity: number
           service_id: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -86,6 +90,8 @@ export type Database = {
           created_at?: string
           id?: string
           link?: string
+          provider_order_id?: string | null
+          provider_status?: string | null
           quantity?: number
           service_id?: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -186,6 +192,8 @@ export type Database = {
           name: string
           platform: string
           price_per_1000: number
+          provider_price: number | null
+          provider_service_id: string | null
           updated_at: string
         }
         Insert: {
@@ -200,6 +208,8 @@ export type Database = {
           name: string
           platform: string
           price_per_1000: number
+          provider_price?: number | null
+          provider_service_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -214,6 +224,8 @@ export type Database = {
           name?: string
           platform?: string
           price_per_1000?: number
+          provider_price?: number | null
+          provider_service_id?: string | null
           updated_at?: string
         }
         Relationships: []

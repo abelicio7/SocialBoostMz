@@ -35,6 +35,7 @@ interface Service {
   daily_limit: number;
   estimated_time: string;
   description: string | null;
+  provider_service_id: string | null;
 }
 
 interface NewOrderFormProps {
@@ -158,14 +159,36 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         order_id: order.id,
       });
 
-      // 4. Notify admin via email
+      // 4. Auto-forward to supplier if service has provider_service_id
+      if (selectedService.provider_service_id) {
+        try {
+          const { data: providerResult } = await supabase.functions.invoke('provider-api', {
+            body: {
+              action: 'order',
+              service_id: selectedService.provider_service_id,
+              link: link.trim(),
+              quantity,
+            },
+          });
+
+          if (providerResult?.success && providerResult?.data?.order) {
+            await supabase.from('orders').update({
+              provider_order_id: providerResult.data.order.toString(),
+              status: 'processing',
+            }).eq('id', order.id);
+          }
+        } catch (providerError) {
+          console.error('Provider order failed:', providerError);
+        }
+      }
+
+      // 5. Notify admin via email
       try {
         await supabase.functions.invoke('notify-new-order', {
           body: { record: order },
         });
       } catch (notifyError) {
         console.error('Admin notification failed:', notifyError);
-        // Don't fail the order if notification fails
       }
 
       return order;

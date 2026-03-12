@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.reseller-api]
 verify_jwt = false
+
+[functions.provider-api]
+verify_jwt = false
