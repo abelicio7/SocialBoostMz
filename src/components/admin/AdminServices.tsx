@@ -172,25 +172,19 @@ const AdminServices = () => {
   const fetchProviderServices = async () => {
     setLoadingProvider(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provider-api/services`,
-        {
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setProviderServices(json.data);
+      const { data, error } = await supabase.functions.invoke('provider-api', {
+        body: { action: 'services' },
+      });
+
+      if (error) throw error;
+      if (data?.success && Array.isArray(data.data)) {
+        setProviderServices(data.data);
         setImportDialogOpen(true);
       } else {
         toast.error("Erro ao buscar serviços do fornecedor");
       }
-    } catch (e) {
-      toast.error("Erro de conexão com o fornecedor");
+    } catch (e: any) {
+      toast.error(e.message || "Erro de conexão com o fornecedor");
     } finally {
       setLoadingProvider(false);
     }
