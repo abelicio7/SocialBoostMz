@@ -107,7 +107,7 @@ serve(async (req) => {
     }
 
     // GET /services - Fetch services from provider
-    if (req.method === "GET" && path === "services") {
+    if (action === "services") {
       const result = await providerRequest("services");
       return new Response(JSON.stringify({ success: true, data: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -115,7 +115,7 @@ serve(async (req) => {
     }
 
     // GET /balance - Check provider balance
-    if (req.method === "GET" && path === "balance") {
+    if (action === "balance") {
       const result = await providerRequest("balance");
       return new Response(JSON.stringify({ success: true, data: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
