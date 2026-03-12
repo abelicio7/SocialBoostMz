@@ -159,14 +159,38 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         order_id: order.id,
       });
 
-      // 4. Notify admin via email
+      // 4. Auto-forward to supplier if service has provider_service_id
+      if (selectedService.provider_service_id) {
+        try {
+          const { data: providerResult } = await supabase.functions.invoke('provider-api', {
+            body: {
+              service_id: selectedService.provider_service_id,
+              link: link.trim(),
+              quantity,
+            },
+            headers: { 'x-action': 'order' },
+          });
+
+          if (providerResult?.success && providerResult?.data?.order) {
+            // Update order with provider order ID and set to processing
+            await supabase.from('orders').update({
+              provider_order_id: providerResult.data.order.toString(),
+              status: 'processing',
+            }).eq('id', order.id);
+          }
+        } catch (providerError) {
+          console.error('Provider order failed:', providerError);
+          // Order stays as pending for manual processing
+        }
+      }
+
+      // 5. Notify admin via email
       try {
         await supabase.functions.invoke('notify-new-order', {
           body: { record: order },
         });
       } catch (notifyError) {
         console.error('Admin notification failed:', notifyError);
-        // Don't fail the order if notification fails
       }
 
       return order;
