@@ -94,7 +94,7 @@ const AdminServices = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (data: ServiceFormData & { id?: string }) => {
-      const serviceData: Record<string, unknown> = {
+      const serviceData = {
         platform: data.platform,
         name: data.name,
         description: data.description,
