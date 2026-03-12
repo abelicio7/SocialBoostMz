@@ -164,15 +164,14 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         try {
           const { data: providerResult } = await supabase.functions.invoke('provider-api', {
             body: {
+              action: 'order',
               service_id: selectedService.provider_service_id,
               link: link.trim(),
               quantity,
             },
-            headers: { 'x-action': 'order' },
           });
 
           if (providerResult?.success && providerResult?.data?.order) {
-            // Update order with provider order ID and set to processing
             await supabase.from('orders').update({
               provider_order_id: providerResult.data.order.toString(),
               status: 'processing',
@@ -180,7 +179,6 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
           }
         } catch (providerError) {
           console.error('Provider order failed:', providerError);
-          // Order stays as pending for manual processing
         }
       }
 
