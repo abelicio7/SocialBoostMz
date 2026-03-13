@@ -79,6 +79,8 @@ const AdminServices = () => {
   const [loadingProvider, setLoadingProvider] = useState(false);
   const [searchImport, setSearchImport] = useState("");
   const queryClient = useQueryClient();
+  const { data: platformSettings } = usePlatformSettings();
+  const exchangeRate = platformSettings?.exchange_rate_brl_mzn ?? 10.5;
 
   const { data: services, isLoading, refetch } = useQuery({
     queryKey: ['admin-services'],
