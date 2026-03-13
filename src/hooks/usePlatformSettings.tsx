@@ -7,6 +7,9 @@ export interface PlatformSettings {
   break_end_time: string | null;
   break_message: string;
   updated_at: string;
+  exchange_rate_brl_mzn: number;
+  exchange_rate_auto: boolean;
+  exchange_rate_updated_at: string | null;
 }
 
 export const usePlatformSettings = () => {
@@ -22,6 +25,6 @@ export const usePlatformSettings = () => {
       if (error) throw error;
       return data as PlatformSettings;
     },
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 30000,
   });
 };
