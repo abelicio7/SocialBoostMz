@@ -307,11 +307,12 @@ const AdminServices = () => {
               </TableRow>
             ) : (
               services?.map((service: any) => {
-                const providerCost = service.provider_price ? Number(service.provider_price) : null;
+                const providerCostBRL = service.provider_price ? Number(service.provider_price) : null;
+                const providerCostMZN = providerCostBRL !== null ? providerCostBRL * exchangeRate : null;
                 const myPrice = Number(service.price_per_1000);
-                const profit = providerCost !== null ? myPrice - providerCost : null;
-                const profitPercent = providerCost !== null && providerCost > 0
-                  ? ((profit! / providerCost) * 100).toFixed(0)
+                const profit = providerCostMZN !== null ? myPrice - providerCostMZN : null;
+                const profitPercent = providerCostMZN !== null && providerCostMZN > 0
+                  ? ((profit! / providerCostMZN) * 100).toFixed(0)
                   : null;
 
                 return (
@@ -327,12 +328,17 @@ const AdminServices = () => {
                       {myPrice.toLocaleString()} MZN
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {providerCost !== null ? `${providerCost.toLocaleString()} MZN` : "—"}
+                      {providerCostBRL !== null ? (
+                        <div>
+                          <div>{providerCostBRL.toLocaleString()} BRL</div>
+                          <div className="text-xs">≈ {providerCostMZN!.toLocaleString(undefined, { maximumFractionDigits: 0 })} MZN</div>
+                        </div>
+                      ) : "—"}
                     </TableCell>
                     <TableCell>
                       {profit !== null ? (
-                        <span className={profit > 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
-                          {profit > 0 ? "+" : ""}{profit.toLocaleString()} MZN ({profitPercent}%)
+                        <span className={profit > 0 ? "text-green-500 font-medium" : "text-destructive font-medium"}>
+                          {profit > 0 ? "+" : ""}{profit.toLocaleString(undefined, { maximumFractionDigits: 0 })} MZN ({profitPercent}%)
                         </span>
                       ) : "—"}
                     </TableCell>
