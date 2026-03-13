@@ -470,7 +470,8 @@ const AdminServices = () => {
                     <TableHead>ID</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Custo/1000</TableHead>
+                    <TableHead>Custo/1000 (BRL)</TableHead>
+                    <TableHead>≈ MZN</TableHead>
                     <TableHead>Meu Preço/1000 (MZN)</TableHead>
                     <TableHead>Plataforma</TableHead>
                     <TableHead>Min-Max</TableHead>
