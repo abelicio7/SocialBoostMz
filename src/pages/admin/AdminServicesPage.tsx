@@ -1,4 +1,5 @@
 import AdminServices from "@/components/admin/AdminServices";
+import AdminExchangeRate from "@/components/admin/AdminExchangeRate";
 
 const AdminServicesPage = () => {
   return (
@@ -11,6 +12,7 @@ const AdminServicesPage = () => {
           Configure os serviços disponíveis na plataforma
         </p>
       </div>
+      <AdminExchangeRate />
       <AdminServices />
     </div>
   );

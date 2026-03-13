@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,8 @@ const AdminServices = () => {
   const [loadingProvider, setLoadingProvider] = useState(false);
   const [searchImport, setSearchImport] = useState("");
   const queryClient = useQueryClient();
+  const { data: platformSettings } = usePlatformSettings();
+  const exchangeRate = platformSettings?.exchange_rate_brl_mzn ?? 10.5;
 
   const { data: services, isLoading, refetch } = useQuery({
     queryKey: ['admin-services'],
@@ -283,8 +286,8 @@ const AdminServices = () => {
             <TableRow className="bg-muted/50">
               <TableHead>Plataforma</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>Meu Preço/1000</TableHead>
-              <TableHead>Custo Fornecedor</TableHead>
+              <TableHead>Custo/1000 (BRL)</TableHead>
+              <TableHead>Custo/1000 (MZN)</TableHead>
               <TableHead>Lucro</TableHead>
               <TableHead>Limites</TableHead>
               <TableHead>Estado</TableHead>
@@ -304,11 +307,12 @@ const AdminServices = () => {
               </TableRow>
             ) : (
               services?.map((service: any) => {
-                const providerCost = service.provider_price ? Number(service.provider_price) : null;
+                const providerCostBRL = service.provider_price ? Number(service.provider_price) : null;
+                const providerCostMZN = providerCostBRL !== null ? providerCostBRL * exchangeRate : null;
                 const myPrice = Number(service.price_per_1000);
-                const profit = providerCost !== null ? myPrice - providerCost : null;
-                const profitPercent = providerCost !== null && providerCost > 0
-                  ? ((profit! / providerCost) * 100).toFixed(0)
+                const profit = providerCostMZN !== null ? myPrice - providerCostMZN : null;
+                const profitPercent = providerCostMZN !== null && providerCostMZN > 0
+                  ? ((profit! / providerCostMZN) * 100).toFixed(0)
                   : null;
 
                 return (
@@ -324,12 +328,17 @@ const AdminServices = () => {
                       {myPrice.toLocaleString()} MZN
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {providerCost !== null ? `${providerCost.toLocaleString()} MZN` : "—"}
+                      {providerCostBRL !== null ? (
+                        <div>
+                          <div>{providerCostBRL.toLocaleString()} BRL</div>
+                          <div className="text-xs">≈ {providerCostMZN!.toLocaleString(undefined, { maximumFractionDigits: 0 })} MZN</div>
+                        </div>
+                      ) : "—"}
                     </TableCell>
                     <TableCell>
                       {profit !== null ? (
-                        <span className={profit > 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
-                          {profit > 0 ? "+" : ""}{profit.toLocaleString()} MZN ({profitPercent}%)
+                        <span className={profit > 0 ? "text-green-500 font-medium" : "text-destructive font-medium"}>
+                          {profit > 0 ? "+" : ""}{profit.toLocaleString(undefined, { maximumFractionDigits: 0 })} MZN ({profitPercent}%)
                         </span>
                       ) : "—"}
                     </TableCell>
@@ -461,7 +470,8 @@ const AdminServices = () => {
                     <TableHead>ID</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Categoria</TableHead>
-                    <TableHead>Custo/1000</TableHead>
+                    <TableHead>Custo/1000 (BRL)</TableHead>
+                    <TableHead>≈ MZN</TableHead>
                     <TableHead>Meu Preço/1000 (MZN)</TableHead>
                     <TableHead>Plataforma</TableHead>
                     <TableHead>Min-Max</TableHead>
@@ -483,7 +493,10 @@ const AdminServices = () => {
                         <TableCell className="text-xs">{s.service}</TableCell>
                         <TableCell className="text-sm max-w-[200px] truncate">{s.name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{s.category}</TableCell>
-                        <TableCell className="text-sm">{s.rate}</TableCell>
+                        <TableCell className="text-sm">{s.rate} BRL</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {(parseFloat(s.rate) * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} MZN
+                        </TableCell>
                         <TableCell>
                           <Input
                             type="number"

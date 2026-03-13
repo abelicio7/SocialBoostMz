@@ -122,6 +122,34 @@ serve(async (req) => {
       });
     }
 
+    // Fetch live BRL→MZN exchange rate and optionally save it
+    if (action === "exchange-rate") {
+      try {
+        const res = await fetch("https://open.er-api.com/v6/latest/BRL");
+        const data = await res.json();
+        if (data?.result === "success" && data?.rates?.MZN) {
+          const rate = data.rates.MZN;
+          // Save to platform_settings if auto mode
+          await supabaseAdmin
+            .from("platform_settings")
+            .update({ 
+              exchange_rate_brl_mzn: rate, 
+              exchange_rate_updated_at: new Date().toISOString() 
+            })
+            .eq("id", "main");
+          return new Response(JSON.stringify({ success: true, rate }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("Failed to fetch exchange rate");
+      } catch (e) {
+        return new Response(JSON.stringify({ success: false, error: e.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ error: "Endpoint not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -120,6 +120,9 @@ export type Database = {
         Row: {
           break_end_time: string | null
           break_message: string | null
+          exchange_rate_auto: boolean
+          exchange_rate_brl_mzn: number
+          exchange_rate_updated_at: string | null
           id: string
           is_on_break: boolean
           updated_at: string
@@ -127,6 +130,9 @@ export type Database = {
         Insert: {
           break_end_time?: string | null
           break_message?: string | null
+          exchange_rate_auto?: boolean
+          exchange_rate_brl_mzn?: number
+          exchange_rate_updated_at?: string | null
           id?: string
           is_on_break?: boolean
           updated_at?: string
@@ -134,6 +140,9 @@ export type Database = {
         Update: {
           break_end_time?: string | null
           break_message?: string | null
+          exchange_rate_auto?: boolean
+          exchange_rate_brl_mzn?: number
+          exchange_rate_updated_at?: string | null
           id?: string
           is_on_break?: boolean
           updated_at?: string
