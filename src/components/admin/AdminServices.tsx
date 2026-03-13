@@ -493,7 +493,10 @@ const AdminServices = () => {
                         <TableCell className="text-xs">{s.service}</TableCell>
                         <TableCell className="text-sm max-w-[200px] truncate">{s.name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{s.category}</TableCell>
-                        <TableCell className="text-sm">{s.rate}</TableCell>
+                        <TableCell className="text-sm">{s.rate} BRL</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {(parseFloat(s.rate) * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} MZN
+                        </TableCell>
                         <TableCell>
                           <Input
                             type="number"
