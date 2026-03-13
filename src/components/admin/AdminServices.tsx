@@ -286,8 +286,8 @@ const AdminServices = () => {
             <TableRow className="bg-muted/50">
               <TableHead>Plataforma</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>Meu Preço/1000</TableHead>
-              <TableHead>Custo Fornecedor</TableHead>
+              <TableHead>Custo/1000 (BRL)</TableHead>
+              <TableHead>Custo/1000 (MZN)</TableHead>
               <TableHead>Lucro</TableHead>
               <TableHead>Limites</TableHead>
               <TableHead>Estado</TableHead>
