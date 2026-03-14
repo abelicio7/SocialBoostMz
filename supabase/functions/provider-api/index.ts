@@ -78,11 +78,13 @@ serve(async (req) => {
     // POST /order - Create order at provider
     if (action === "order") {
       const { service_id, link, quantity } = body;
+      console.log(`Creating provider order: service=${service_id}, link=${link}, qty=${quantity}`);
       const result = await providerRequest("add", {
         service: service_id.toString(),
         link,
         quantity: quantity.toString(),
       });
+      console.log("Provider order result:", JSON.stringify(result));
       return new Response(JSON.stringify({ success: true, data: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
