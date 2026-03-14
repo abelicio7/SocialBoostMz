@@ -1,5 +1,6 @@
 import AdminStats from "@/components/admin/AdminStats";
 import AdminBreakControl from "@/components/admin/AdminBreakControl";
+import AdminProviderBalance from "@/components/admin/AdminProviderBalance";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
