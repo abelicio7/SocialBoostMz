@@ -102,6 +102,15 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  useOrderStatusSync({
+    orders,
+    enabled: !!user,
+    queryKeys: [
+      ['user-orders', user?.id],
+      ['admin-orders'],
+    ],
+  });
+
   // Fetch transactions
   const { data: transactions } = useQuery({
     queryKey: ['user-transactions', user?.id],
