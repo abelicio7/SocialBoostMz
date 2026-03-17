@@ -176,6 +176,10 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
               provider_order_id: providerResult.data.order.toString(),
               status: 'processing',
             }).eq('id', order.id);
+
+            await supabase.functions.invoke('sync-order-status', {
+              body: { order_ids: [order.id] },
+            });
           }
         } catch (providerError) {
           console.error('Provider order failed:', providerError);

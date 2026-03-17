@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrderStatusSync } from "@/hooks/useOrderStatusSync";
 import { toast } from "sonner";
 import NewOrderForm from "@/components/orders/NewOrderForm";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
@@ -101,6 +102,15 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  useOrderStatusSync({
+    orders,
+    enabled: !!user,
+    queryKeys: [
+      ['user-orders', user?.id],
+      ['admin-orders'],
+    ],
+  });
+
   // Fetch transactions
   const { data: transactions } = useQuery({
     queryKey: ['user-transactions', user?.id],
@@ -191,6 +201,31 @@ const Dashboard = () => {
       supabase.removeChannel(channel);
     };
   }, [user, refetchMessages, playSound, activeTab]);
+
+  // Real-time subscription for order updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`user-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['user-orders', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   // Auto-scroll to bottom
   useEffect(() => {
