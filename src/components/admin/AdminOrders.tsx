@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Search, RefreshCw } from "lucide-react";
+import { useOrderStatusSync } from "@/hooks/useOrderStatusSync";
 import { Database } from "@/integrations/supabase/types";
 
 type OrderStatus = Database['public']['Enums']['order_status'];
