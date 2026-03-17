@@ -202,6 +202,31 @@ const Dashboard = () => {
     };
   }, [user, refetchMessages, playSound, activeTab]);
 
+  // Real-time subscription for order updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`user-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['user-orders', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

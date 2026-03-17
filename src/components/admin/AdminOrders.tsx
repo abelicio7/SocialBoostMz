@@ -67,6 +67,32 @@ const AdminOrders = () => {
     },
   });
 
+  useOrderStatusSync({
+    orders,
+    queryKeys: [['admin-orders', statusFilter]],
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-orders-live')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const updateStatus = useMutation({
     mutationFn: async ({ orderId, newStatus }: { orderId: string; newStatus: OrderStatus }) => {
       const { error } = await supabase
