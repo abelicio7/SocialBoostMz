@@ -39,6 +39,13 @@ serve(async (req) => {
     let requesterId: string | null = null;
     let isAdmin = false;
 
+    if (requestedOrderIds.length > 0 && !authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (authHeader) {
       const authClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
