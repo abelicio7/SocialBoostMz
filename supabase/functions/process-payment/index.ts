@@ -13,8 +13,9 @@ interface PaymentRequest {
   method: "mpesa" | "emola";
 }
 
+const DEBITOPAY_BASE = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,7 +23,6 @@ serve(async (req) => {
   try {
     const { userId, amount, phone, method }: PaymentRequest = await req.json();
 
-    // Validate inputs
     if (!userId || !amount || !phone || !method) {
       return new Response(
         JSON.stringify({ success: false, error: "Campos obrigatórios em falta" }),
@@ -37,7 +37,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate phone number format
     const validMpesa = /^8[45]\d{7}$/.test(phone);
     const validEmola = /^8[67]\d{7}$/.test(phone);
 
@@ -55,95 +54,77 @@ serve(async (req) => {
       );
     }
 
-    // Get E2Payments credentials from environment
-    const clientId = Deno.env.get("E2PAYMENTS_CLIENT_ID");
-    const clientSecret = Deno.env.get("E2PAYMENTS_CLIENT_SECRET");
+    const apiKey = Deno.env.get("DEBITOPAY_API_KEY");
+    const merchantId = Deno.env.get("DEBITOPAY_MERCHANT_ID");
+    const mpesaWallet = Deno.env.get("DEBITOPAY_MPESA_WALLET_CODE");
+    const emolaWallet = Deno.env.get("DEBITOPAY_EMOLA_WALLET_CODE");
 
-    if (!clientId || !clientSecret) {
-      console.error("Missing E2Payments credentials");
+    if (!apiKey || !merchantId || !mpesaWallet || !emolaWallet) {
+      console.error("Missing Debito Pay credentials");
       return new Response(
         JSON.stringify({ success: false, error: "Configuração de pagamento em falta" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Step 1: Get OAuth token
-    const tokenResponse = await fetch("https://e2payments.explicador.co.mz/oauth/token", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
-      },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-    });
+    const walletCode = method === "mpesa" ? mpesaWallet : emolaWallet;
+    const internationalPhone = `+258${phone}`;
 
-    const tokenText = await tokenResponse.text();
-    console.log("Token response status:", tokenResponse.status);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let tokenData;
-    try {
-      tokenData = JSON.parse(tokenText);
-    } catch {
-      console.error("Token endpoint returned non-JSON:", tokenText.substring(0, 300));
-      return new Response(
-        JSON.stringify({ success: false, error: "Serviço de pagamentos indisponível. Tente novamente mais tarde." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const token = tokenData.access_token;
+    // Call Debito Pay orchestrator
+    const orchestratorBody = {
+      action: "process",
+      payment_method: method,
+      merchant_id: merchantId,
+      wallet_code: walletCode,
+      amount: amount,
+      currency: "MZN",
+      phone: internationalPhone,
+      source: "gateway",
+      source_id: `sb_${userId.slice(0, 8)}_${Date.now()}`,
+      customer_phone: internationalPhone,
+    };
 
-    // Step 2: Process payment
-    const endpoint = method === "mpesa"
-      ? "https://e2payments.explicador.co.mz/v1/c2b/mpesa-payment/999813"
-      : "https://e2payments.explicador.co.mz/v1/c2b/emola-payment/999814";
+    console.log("Calling Debito Pay orchestrator:", JSON.stringify(orchestratorBody));
 
-    const paymentResponse = await fetch(endpoint, {
+    const dpResponse = await fetch(`${DEBITOPAY_BASE}/payment-orchestrator`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
-        "X-Requested-With": "XMLHttpRequest",
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
         "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        client_id: clientId,
-        amount: amount.toString(),
-        reference: `sb${userId.slice(0, 8)}`,
-        phone: phone,
-      }),
+      body: JSON.stringify(orchestratorBody),
     });
 
-    const paymentText = await paymentResponse.text();
-    console.log("Payment raw response status:", paymentResponse.status);
-    console.log("Payment raw response:", paymentText.substring(0, 500));
+    const dpText = await dpResponse.text();
+    console.log("Debito Pay status:", dpResponse.status, "body:", dpText.substring(0, 500));
 
-    let paymentResult;
+    let dpResult: any;
     try {
-      paymentResult = JSON.parse(paymentText);
+      dpResult = JSON.parse(dpText);
     } catch {
-      console.error("E2Payments returned non-JSON response:", paymentText.substring(0, 300));
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Serviço de pagamentos indisponível. Tente novamente mais tarde." 
-        }),
+        JSON.stringify({ success: false, error: "Resposta inválida do gateway de pagamento" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    console.log("Payment parsed response:", JSON.stringify(paymentResult, null, 2));
 
-    // Check if payment was successful
-    if (paymentResult.success && paymentResult.success.includes("sucesso")) {
-      // Create Supabase client with service role
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (!dpResult.success) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: dpResult.error || "Pagamento não foi aceite. Tente novamente.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      // Get current balance
+    // === M-Pesa: synchronous success → credit immediately ===
+    if (method === "mpesa" && dpResult.status === "success") {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("balance")
@@ -158,10 +139,8 @@ serve(async (req) => {
         );
       }
 
-      const currentBalance = Number(profile.balance) || 0;
-      const newBalance = currentBalance + amount;
+      const newBalance = (Number(profile.balance) || 0) + amount;
 
-      // Update balance and auto-unblock user
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ balance: newBalance, is_blocked: false })
@@ -175,55 +154,71 @@ serve(async (req) => {
         );
       }
 
-      // Create transaction record
-      const { error: txError } = await supabase
-        .from("wallet_transactions")
-        .insert({
-          user_id: userId,
-          amount: amount,
-          type: "deposit",
-          description: `Recarga via ${method.toUpperCase()} - ${phone}`,
-          reference_id: `${method}-${Date.now()}`,
-        });
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId,
+        amount: amount,
+        type: "deposit",
+        description: `Recarga via MPESA - ${phone}`,
+        reference_id: dpResult.reference || dpResult.transactionId || dpResult.payment_id,
+      });
 
-      if (txError) {
-        console.error("Error creating transaction:", txError);
-        // Don't fail the whole request, balance was already updated
-      }
-
-      // Send webhook notification
+      // Pushcut notification
       try {
-        const webhookUrl = "https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada";
-        await fetch(webhookUrl, {
+        await fetch("https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: `Recarregamento de ${amount} MZN APROVADO💰`,
-          }),
+          body: JSON.stringify({ text: `Recarregamento de ${amount} MZN APROVADO💰` }),
         });
-        console.log("Webhook notification sent successfully");
-      } catch (webhookError) {
-        console.error("Failed to send webhook notification:", webhookError);
-        // Don't fail the request if webhook fails
+      } catch (e) {
+        console.error("Pushcut failed:", e);
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
+          status: "success",
           message: "Pagamento processado com sucesso!",
-          newBalance: newBalance
+          newBalance,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } else {
+    }
+
+    // === E-Mola (or M-Pesa pending): store pending → wait for webhook ===
+    if (dpResult.payment_id) {
+      const { error: pendingError } = await supabase.from("pending_payments").insert({
+        payment_id: dpResult.payment_id,
+        user_id: userId,
+        amount: amount,
+        method: method,
+        phone: phone,
+        status: "pending",
+        provider_reference: dpResult.reference || null,
+      });
+
+      if (pendingError) {
+        console.error("Error inserting pending payment:", pendingError);
+        return new Response(
+          JSON.stringify({ success: false, error: "Erro ao registar pagamento pendente" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Pagamento não concluído. Verifique o seu telefone e tente novamente."
+        JSON.stringify({
+          success: true,
+          status: "pending",
+          payment_id: dpResult.payment_id,
+          message: "Confirme o pagamento no seu telefone. O saldo será actualizado automaticamente.",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    return new Response(
+      JSON.stringify({ success: false, error: "Resposta inesperada do gateway de pagamento" }),
+      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Payment processing error:", error);
     return new Response(
