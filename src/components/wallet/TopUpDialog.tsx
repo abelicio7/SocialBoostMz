@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Smartphone, Wallet } from "lucide-react";
+import { Loader2, CheckCircle2, Smartphone, Wallet, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TopUpDialogProps {
@@ -21,13 +21,63 @@ type PaymentMethod = "mpesa" | "emola";
 const PRESET_AMOUNTS = [100, 250, 500, 1000, 2500, 5000];
 
 const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
-  const [step, setStep] = useState<"amount" | "payment" | "processing" | "success">("amount");
+  const [step, setStep] = useState<"amount" | "payment" | "processing" | "success" | "failed">("amount");
   const [amount, setAmount] = useState<number>(500);
   const [customAmount, setCustomAmount] = useState("");
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("mpesa");
+  const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null);
+  const [processingMessage, setProcessingMessage] = useState<string>("");
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Realtime subscription for pending payment status changes (E-Mola)
+  useEffect(() => {
+    if (!pendingPaymentId || !user) return;
+
+    const channel = supabase
+      .channel(`pending-${pendingPaymentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "pending_payments",
+          filter: `payment_id=eq.${pendingPaymentId}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any)?.status;
+          if (newStatus === "success") {
+            setStep("success");
+            setPendingPaymentId(null);
+            queryClient.invalidateQueries({ queryKey: ["profile"] });
+            queryClient.invalidateQueries({ queryKey: ["user-transactions"] });
+            toast.success("Recarga confirmada!");
+            if (typeof window !== "undefined" && (window as any).fbq) {
+              (window as any).fbq("track", "Purchase", { value: amount, currency: "MZN" });
+            }
+          } else if (newStatus === "failed") {
+            setStep("failed");
+            setPendingPaymentId(null);
+            toast.error("Pagamento não foi confirmado.");
+          }
+        }
+      )
+      .subscribe();
+
+    // Timeout fallback after 3 minutes
+    timeoutRef.current = setTimeout(() => {
+      setStep("failed");
+      setPendingPaymentId(null);
+      toast.error("Tempo esgotado. Se confirmou no telefone, o saldo aparecerá em instantes.");
+    }, 180_000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [pendingPaymentId, user, amount, queryClient]);
 
   const processPayment = useMutation({
     mutationFn: async () => {
@@ -48,12 +98,19 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       return data;
     },
     onSuccess: (data) => {
+      if (data.status === "pending" && data.payment_id) {
+        setPendingPaymentId(data.payment_id);
+        setProcessingMessage(
+          "Confirme o pagamento no seu telefone. O saldo será actualizado automaticamente quando confirmar."
+        );
+        return;
+      }
+
       setStep("success");
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["user-transactions"] });
       toast.success("Recarga efectuada com sucesso!");
-      
-      // Meta Pixel Purchase event
+
       if (typeof window !== "undefined" && (window as any).fbq) {
         (window as any).fbq("track", "Purchase", {
           value: amount,
@@ -68,11 +125,14 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   });
 
   const handleClose = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setStep("amount");
     setAmount(500);
     setCustomAmount("");
     setPhone("");
     setMethod("mpesa");
+    setPendingPaymentId(null);
+    setProcessingMessage("");
     onOpenChange(false);
   };
 
@@ -131,6 +191,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
             {step === "payment" && "Método de Pagamento"}
             {step === "processing" && "Processando..."}
             {step === "success" && "Recarga Concluída!"}
+            {step === "failed" && "Pagamento Não Confirmado"}
           </DialogTitle>
         </DialogHeader>
 
@@ -276,14 +337,33 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">Processando Pagamento</h3>
+              <h3 className="font-semibold text-lg">
+                {pendingPaymentId ? "Aguardando Confirmação" : "Processando Pagamento"}
+              </h3>
               <p className="text-muted-foreground text-sm mt-1">
-                Aguarde a confirmação no seu telefone...
+                {processingMessage || "Aguarde a confirmação no seu telefone..."}
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
               Verifique o seu {method === "mpesa" ? "M-Pesa" : "E-Mola"} e confirme o pagamento
             </p>
+          </div>
+        )}
+
+        {step === "failed" && (
+          <div className="py-8 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto">
+              <XCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Pagamento Não Confirmado</h3>
+              <p className="text-muted-foreground text-sm mt-1">
+                O pagamento não foi confirmado a tempo. Se confirmou no telefone, o saldo aparecerá em instantes.
+              </p>
+            </div>
+            <Button onClick={handleClose} className="w-full" size="lg">
+              Fechar
+            </Button>
           </div>
         )}
 
