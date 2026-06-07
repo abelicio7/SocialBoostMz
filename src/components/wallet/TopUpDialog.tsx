@@ -191,6 +191,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
             {step === "payment" && "Método de Pagamento"}
             {step === "processing" && "Processando..."}
             {step === "success" && "Recarga Concluída!"}
+            {step === "failed" && "Pagamento Não Confirmado"}
           </DialogTitle>
         </DialogHeader>
 
