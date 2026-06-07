@@ -337,14 +337,33 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">Processando Pagamento</h3>
+              <h3 className="font-semibold text-lg">
+                {pendingPaymentId ? "Aguardando Confirmação" : "Processando Pagamento"}
+              </h3>
               <p className="text-muted-foreground text-sm mt-1">
-                Aguarde a confirmação no seu telefone...
+                {processingMessage || "Aguarde a confirmação no seu telefone..."}
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
               Verifique o seu {method === "mpesa" ? "M-Pesa" : "E-Mola"} e confirme o pagamento
             </p>
+          </div>
+        )}
+
+        {step === "failed" && (
+          <div className="py-8 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto">
+              <XCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Pagamento Não Confirmado</h3>
+              <p className="text-muted-foreground text-sm mt-1">
+                O pagamento não foi confirmado a tempo. Se confirmou no telefone, o saldo aparecerá em instantes.
+              </p>
+            </div>
+            <Button onClick={handleClose} className="w-full" size="lg">
+              Fechar
+            </Button>
           </div>
         )}
 
