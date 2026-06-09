@@ -144,6 +144,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
 
   const handleClose = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (pollRef.current) clearInterval(pollRef.current);
     setStep("amount");
     setAmount(500);
     setCustomAmount("");
