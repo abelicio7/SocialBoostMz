@@ -31,10 +31,27 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Realtime subscription for pending payment status changes (E-Mola)
+  // Realtime subscription + polling fallback for pending payment status (E-Mola)
   useEffect(() => {
     if (!pendingPaymentId || !user) return;
+
+    const handleResolved = (status: "success" | "failed") => {
+      if (status === "success") {
+        setStep("success");
+        queryClient.invalidateQueries({ queryKey: ["profile"] });
+        queryClient.invalidateQueries({ queryKey: ["user-transactions"] });
+        toast.success("Recarga confirmada!");
+        if (typeof window !== "undefined" && (window as any).fbq) {
+          (window as any).fbq("track", "Purchase", { value: amount, currency: "MZN" });
+        }
+      } else {
+        setStep("failed");
+        toast.error("Pagamento não foi confirmado.");
+      }
+      setPendingPaymentId(null);
+    };
 
     const channel = supabase
       .channel(`pending-${pendingPaymentId}`)
@@ -48,23 +65,22 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
         },
         (payload) => {
           const newStatus = (payload.new as any)?.status;
-          if (newStatus === "success") {
-            setStep("success");
-            setPendingPaymentId(null);
-            queryClient.invalidateQueries({ queryKey: ["profile"] });
-            queryClient.invalidateQueries({ queryKey: ["user-transactions"] });
-            toast.success("Recarga confirmada!");
-            if (typeof window !== "undefined" && (window as any).fbq) {
-              (window as any).fbq("track", "Purchase", { value: amount, currency: "MZN" });
-            }
-          } else if (newStatus === "failed") {
-            setStep("failed");
-            setPendingPaymentId(null);
-            toast.error("Pagamento não foi confirmado.");
-          }
+          if (newStatus === "success" || newStatus === "failed") handleResolved(newStatus);
         }
       )
       .subscribe();
+
+    // Polling fallback (every 5s) — covers webhook delivery failures
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("check-payment-status", {
+          body: { payment_id: pendingPaymentId },
+        });
+        if (data?.status === "success" || data?.status === "failed") handleResolved(data.status);
+      } catch (e) {
+        console.error("poll error", e);
+      }
+    }, 5000);
 
     // Timeout fallback after 3 minutes
     timeoutRef.current = setTimeout(() => {
@@ -76,8 +92,10 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
     return () => {
       supabase.removeChannel(channel);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [pendingPaymentId, user, amount, queryClient]);
+
 
   const processPayment = useMutation({
     mutationFn: async () => {
@@ -126,6 +144,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
 
   const handleClose = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (pollRef.current) clearInterval(pollRef.current);
     setStep("amount");
     setAmount(500);
     setCustomAmount("");
