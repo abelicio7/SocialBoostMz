@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Loader2 } from "lucide-react";
 import { useOrderStatusSync } from "@/hooks/useOrderStatusSync";
 import { Database } from "@/integrations/supabase/types";
 
@@ -53,7 +53,7 @@ const AdminOrders = () => {
         .select(`
           *,
           profiles (full_name, phone),
-          services (name, platform)
+          services (name, platform, provider_service_id)
         `)
         .order('created_at', { ascending: false });
 
@@ -140,6 +140,51 @@ const AdminOrders = () => {
       toast.error('Erro ao actualizar status');
     },
   });
+
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const sendToProvider = async (order: any) => {
+    const providerServiceId = (order.services as any)?.provider_service_id;
+    if (!providerServiceId) {
+      toast.error("Este serviço não possui ID do Provedor configurado.");
+      return;
+    }
+    setSendingId(order.id);
+    try {
+      const { data: providerResult, error: providerError } = await supabase.functions.invoke('provider-api', {
+        body: {
+          action: 'order',
+          service_id: providerServiceId,
+          link: order.link,
+          quantity: order.quantity,
+        },
+      });
+      
+      if (providerError) throw providerError;
+
+      if (providerResult?.success && providerResult?.data?.order) {
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            provider_order_id: providerResult.data.order.toString(),
+            status: 'processing',
+          })
+          .eq('id', order.id);
+          
+        if (updateError) throw updateError;
+        
+        toast.success('Pedido enviado ao provedor com sucesso!');
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      } else {
+        throw new Error(providerResult?.data?.error || providerResult?.error || 'Provedor retornou resposta inválida');
+      }
+    } catch (err: any) {
+      console.error('Erro ao enviar pedido:', err);
+      toast.error(err.message || 'Erro ao enviar pedido para o provedor');
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   const filteredOrders = orders?.filter(order => {
     if (!search) return true;
@@ -250,21 +295,42 @@ const AdminOrders = () => {
                     {new Date(order.created_at).toLocaleDateString('pt-PT')}
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={order.status}
-                      onValueChange={(value) => updateStatus.mutate({ orderId: order.id, newStatus: value as OrderStatus })}
-                      disabled={updateStatus.isPending}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="processing">Processando</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
-                        <SelectItem value="cancelled">Cancelar</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-2">
+                      <Select
+                        value={order.status}
+                        onValueChange={(value) => updateStatus.mutate({ orderId: order.id, newStatus: value as OrderStatus })}
+                        disabled={updateStatus.isPending}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pendente</SelectItem>
+                          <SelectItem value="processing">Processando</SelectItem>
+                          <SelectItem value="completed">Concluído</SelectItem>
+                          <SelectItem value="cancelled">Cancelar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {!order.provider_order_id && (order.services as any)?.provider_service_id && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="w-32 text-xs"
+                          onClick={() => sendToProvider(order)}
+                          disabled={sendingId === order.id}
+                        >
+                          {sendingId === order.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                              Enviando...
+                            </>
+                          ) : (
+                            "Enviar Provedor"
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
