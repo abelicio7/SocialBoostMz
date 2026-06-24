@@ -1,0 +1,2 @@
+id;user_id;api_key;name;discount_percent;is_active;requests_today;daily_limit;last_used_at;created_at;updated_at
+7033a258-2993-470a-b355-8f74c45944a7;1827bfdf-76ed-4302-a37e-3395a1021cde;rk_1139186b780142ffa1c9efa0a60d13907ce7d7df41eb4a928936794d583d9cb1;API Sunyld;30;true;0;1000;;2026-03-11 09:11:48.508058+00;2026-03-11 09:11:48.508058+00
