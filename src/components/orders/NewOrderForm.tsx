@@ -118,48 +118,17 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
       }
       if (!hasEnoughBalance) throw new Error("Saldo insuficiente");
 
-      // 1. Debit balance
-      const newBalance = balance - totalPrice;
-      const { error: balanceError } = await supabase
-        .from('profiles')
-        .update({ balance: newBalance })
-        .eq('id', user.id);
-      
-      if (balanceError) throw balanceError;
-
-      // 2. Create order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          service_id: selectedService.id,
-          quantity,
-          link: link.trim(),
-          total_price: totalPrice,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        // Rollback balance
-        await supabase
-          .from('profiles')
-          .update({ balance: balance })
-          .eq('id', user.id);
-        throw orderError;
-      }
-
-      // 3. Create transaction record
-      await supabase.from('wallet_transactions').insert({
-        user_id: user.id,
-        amount: -totalPrice,
-        type: 'order_payment',
-        description: `Pagamento pedido #${order.id.slice(0, 8)} - ${selectedService.name}`,
-        order_id: order.id,
+      // 1. Create order and debit balance atomically on the server
+      const { data: order, error: orderError } = await supabase.rpc('place_order_secure', {
+        p_service_id: selectedService.id,
+        p_link: link.trim(),
+        p_quantity: quantity,
       });
 
-      // 4. Auto-forward to supplier if service has provider_service_id
+      if (orderError) throw orderError;
+      if (!order) throw new Error("Falha ao criar pedido.");
+
+      // 2. Auto-forward to supplier if service has provider_service_id
       if (selectedService.provider_service_id) {
         try {
           const { data: providerResult } = await supabase.functions.invoke('provider-api', {
@@ -186,7 +155,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
         }
       }
 
-      // 5. Notify admin via email
+      // 3. Notify admin via email
       try {
         await supabase.functions.invoke('notify-new-order', {
           body: { record: order },
