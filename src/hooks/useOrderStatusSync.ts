@@ -35,10 +35,16 @@ export const useOrderStatusSync = ({
   );
 
   const orderIdsKey = syncableOrderIds.join(",");
-  const queryKeysKey = JSON.stringify(queryKeys);
+
+  // Use refs to store the latest values of arrays to avoid reference dependency issues
+  const queryKeysRef = useRef(queryKeys);
+  queryKeysRef.current = queryKeys;
+
+  const syncableOrderIdsRef = useRef(syncableOrderIds);
+  syncableOrderIdsRef.current = syncableOrderIds;
 
   useEffect(() => {
-    if (!enabled || syncableOrderIds.length === 0) return;
+    if (!enabled || orderIdsKey === "") return;
 
     let isMounted = true;
 
@@ -48,13 +54,13 @@ export const useOrderStatusSync = ({
 
       try {
         const { error } = await supabase.functions.invoke("sync-order-status", {
-          body: { order_ids: syncableOrderIds },
+          body: { order_ids: syncableOrderIdsRef.current },
         });
 
         if (error) throw error;
         if (!isMounted) return;
 
-        queryKeys.forEach((queryKey) => {
+        queryKeysRef.current.forEach((queryKey) => {
           queryClient.invalidateQueries({ queryKey: [...queryKey] });
         });
       } catch (error) {
@@ -71,5 +77,5 @@ export const useOrderStatusSync = ({
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [enabled, intervalMs, orderIdsKey, queryClient, queryKeys, queryKeysKey, syncableOrderIds]);
+  }, [enabled, intervalMs, orderIdsKey, queryClient]);
 };
