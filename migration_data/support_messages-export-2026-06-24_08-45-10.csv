@@ -1,4 +1,4 @@
-id;user_id;message;is_from_admin;is_read;created_at;conversation_closed
+﻿id;user_id;message;is_from_admin;is_read;created_at;conversation_closed
 f69dbd76-a86f-4daf-b1dc-58445c70cc44;bf319da2-9398-49d7-947f-1b3c33dff140;Olá, bom dia. Vimos que fez o pedido de seguidores para página do Instagram. No momento só temos seguidores para pagina de Facebook;true;false;2026-02-14 05:35:36.839332+00;false
 1f58ae39-df8e-41e7-ad7a-c9ee57cdf752;a94425bf-8d0e-4c21-b80e-63903b91ba98;Boa tarde. Todos os pedidps ja foram atendidos;true;false;2026-02-15 13:13:06.650014+00;false
 8465cbe4-f785-497e-9f58-2b1587c3233f;f8098c85-3664-4f47-8d60-123f03daef85;Boa tarde, não é permitida a criação de mais de uma conta na SocialBoost;true;false;2026-02-15 13:37:03.524375+00;false
@@ -37,7 +37,7 @@ b882144e-e07e-426b-a6f4-8e9461be0e4e;e5da6415-fb68-4267-b3aa-0bd54f2e0d77;O Bonu
 8d63eaa2-9389-4f65-8079-cd3711259336;94fc3dd3-ab81-46b6-a25a-3ccea69220ac;Boa noite tenho uma questão;false;false;2026-02-22 17:02:16.453448+00;false
 e68e566a-6813-4cc2-8b67-64e8c6429ea6;01910bf3-a6d7-494f-a429-00866dd1af0d;Só mesmo para não te deixar em pânico ao se aperceber do atraso, mas fique despreocupado;true;false;2026-03-16 16:39:56.886341+00;false
 d5fb3170-c403-41d3-94d2-528764aeffa8;75c94e82-757d-44d4-9e27-fdd1b12602b5;Todas Ofertas ainda estao disponiveis;true;false;2026-03-06 07:16:50.507527+00;false
-10eb5d4f-d115-4531-bec8-be565f6b5615;1827bfdf-76ed-4302-a37e-3395a1021cde;Chefe como estás? Fiz depósito é dinheiro não reflete na conta;false;false;2026-03-24 17:08:48.709019+00;false
+10eb5d4f-d115-4531-bec8-be565f6b5615;1827bfdf-76ed-4302-a37e-3395a1021cde;Chefe como estásÃ³ Fiz depósito é dinheiro não reflete na conta;false;false;2026-03-24 17:08:48.709019+00;false
 557580dd-875f-4682-879a-b490d6f95cd2;977308ae-34f6-4c7c-95ba-e004ea484962;Oi;false;true;2026-02-14 05:43:34.650759+00;false
 7ded6931-652c-43dd-b0c2-491508869fac;d14fa2aa-fac9-4935-8200-a51a724ae755;Está bem;false;true;2026-02-16 08:35:40.343143+00;false
 5797644c-ea33-4eaa-9679-b09630e446db;4308347f-a1af-4a74-b022-7ee5647ab5c0;Qual a funcao de isso;false;true;2026-02-16 06:54:06.674707+00;false

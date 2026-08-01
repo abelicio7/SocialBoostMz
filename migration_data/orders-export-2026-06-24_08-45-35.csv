@@ -1,4 +1,4 @@
-id;user_id;service_id;quantity;link;total_price;status;admin_notes;created_at;updated_at;provider_order_id;provider_status
+﻿id;user_id;service_id;quantity;link;total_price;status;admin_notes;created_at;updated_at;provider_order_id;provider_status
 6d24a6b8-3a8b-421a-a386-1d73143d3c10;fd90a447-b9e7-4dae-93a5-fd703284b833;8ac7de71-5db8-45ae-8328-7c538a712e2d;600;https://supabase.com/pricing;87.00;completed;;2026-01-04 10:39:52.529195+00;2026-01-04 10:40:31.645908+00;;
 d456c982-1926-4935-9f90-09b91a3d14cc;336961d8-918f-40e1-a14e-b6acc67f1971;2ad71475-3464-4177-9605-7b8c168db96e;700;https://supabase.com/pricing;84.00;completed;;2026-01-04 10:20:05.187177+00;2026-01-04 10:40:34.708973+00;;
 32887c00-f556-4f7e-86f6-432aa32b2d37;fd90a447-b9e7-4dae-93a5-fd703284b833;860df7d7-ab70-46bd-bd80-7661255d0b13;100;https://supabase.com/pricing;35.00;completed;;2026-01-04 11:35:40.297143+00;2026-01-04 11:36:46.328024+00;;

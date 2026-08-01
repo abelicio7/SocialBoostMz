@@ -1,4 +1,4 @@
-id;user_id;amount;type;description;reference_id;order_id;created_at
+﻿id;user_id;amount;type;description;reference_id;order_id;created_at
 ba1160aa-f2ff-4614-9502-811dc8037d84;336961d8-918f-40e1-a14e-b6acc67f1971;160.00;deposit;Ajuste manual de saldo pelo administrador;;;2026-01-04 10:07:46.290117+00
 98312fc9-ec0d-41f1-8752-db20b84cb6f2;fd90a447-b9e7-4dae-93a5-fd703284b833;200.00;deposit;Ajuste manual de saldo pelo administrador;;;2026-01-04 10:07:58.391776+00
 e1998837-1db1-48e7-b835-3587fce527e1;fd90a447-b9e7-4dae-93a5-fd703284b833;	-87.00;order_payment;Pagamento pedido #6d24a6b8 - Curtidas;;6d24a6b8-3a8b-421a-a386-1d73143d3c10;2026-01-04 10:39:52.978803+00

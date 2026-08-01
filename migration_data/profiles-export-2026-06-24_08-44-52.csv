@@ -1,4 +1,4 @@
-id;full_name;phone;balance;is_blocked;accepted_terms;accepted_refund_policy;accepted_risk_warning;created_at;updated_at
+﻿id;full_name;phone;balance;is_blocked;accepted_terms;accepted_refund_policy;accepted_risk_warning;created_at;updated_at
 7e7b3a5b-22bd-4a0b-b70e-cac201549078;Serafim wazir chavango ;844538560;35.00;false;true;true;true;2026-02-14 23:13:50.354469+00;2026-02-14 23:13:52.066004+00
 58d03a69-ed53-48c4-ad88-167f1f91776b;Edmilson Napoleão ;847816602;35.00;false;true;true;true;2026-02-15 13:50:33.450152+00;2026-02-15 13:50:34.581553+00
 08429734-afe5-450d-b47a-a91a0b7549e3;Olívio Albino Sechela;;5.00;false;true;true;true;2026-02-15 12:03:29.255719+00;2026-02-15 12:07:26.129194+00
