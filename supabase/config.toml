@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.debitopay-webhook]
 verify_jwt = false
+
+[functions.send-welcome-email]
+verify_jwt = false
+
+[functions.daily-reports]
+verify_jwt = false

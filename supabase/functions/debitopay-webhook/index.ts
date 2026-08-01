@@ -90,10 +90,13 @@ serve(async (req) => {
     }
 
     if (event === "payment.completed") {
+      const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+      const brevoSenderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@socialboostmz.com";
+
       // Credit user balance
       const { data: profile } = await supabase
         .from("profiles")
-        .select("balance")
+        .select("full_name, balance")
         .eq("id", pending.user_id)
         .single();
 
@@ -116,6 +119,69 @@ serve(async (req) => {
         .from("pending_payments")
         .update({ status: "success", provider_reference: data.reference || null })
         .eq("payment_id", paymentId);
+
+      // Send email confirmation to user
+      if (brevoApiKey) {
+        try {
+          const { data: userAuth } = await supabase.auth.admin.getUserById(pending.user_id);
+          const userEmail = userAuth?.user?.email;
+
+          if (userEmail) {
+            const customerName = profile?.full_name || "Cliente";
+            const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+              method: "POST",
+              headers: {
+                "api-key": brevoApiKey,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+              },
+              body: JSON.stringify({
+                sender: { name: "SocialBoostMz", email: brevoSenderEmail },
+                to: [{ email: userEmail, name: customerName }],
+                subject: `💰 Depósito de ${pending.amount} MZN Confirmado!`,
+                htmlContent: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <h2 style="color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px;">💰 Saldo Adicionado!</h2>
+                    <p>Olá, <strong>${customerName}</strong>,</p>
+                    <p>Confirmamos que a sua recarga de carteira foi processada com sucesso.</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                      <tr style="background: #f9fafb;">
+                        <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">ID da Transação</td>
+                        <td style="padding: 10px; border: 1px solid #e5e7eb;">#${(data.reference || paymentId).slice(0, 12)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Valor Adicionado</td>
+                        <td style="padding: 10px; border: 1px solid #e5e7eb; color: #059669; font-weight: bold;">${Number(pending.amount).toLocaleString()} MZN</td>
+                      </tr>
+                      <tr style="background: #f9fafb;">
+                        <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Método</td>
+                        <td style="padding: 10px; border: 1px solid #e5e7eb;">${pending.method.toUpperCase()}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Novo Saldo da Carteira</td>
+                        <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">${Number(newBalance).toLocaleString()} MZN</td>
+                      </tr>
+                    </table>
+                    
+                    <p>O seu saldo já está disponível e pode ser usado para efetuar novos pedidos de imediato.</p>
+                    <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+                    <p style="color: #6b7280; font-size: 12px; text-align: center;">SocialBoostMz - Impulsione suas redes sociais</p>
+                  </div>
+                `,
+              }),
+            });
+
+            if (brevoRes.ok) {
+              console.log(`Deposit confirmation email sent to user (${userEmail})`);
+            } else {
+              console.error(`Failed to send deposit email to ${userEmail}:`, await brevoRes.text());
+            }
+          }
+        } catch (emailErr) {
+          console.error("Failed to send deposit email notification:", emailErr);
+        }
+      }
 
       try {
         await fetch("https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada", {

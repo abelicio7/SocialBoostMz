@@ -61,17 +61,25 @@ serve(async (req) => {
       });
     }
 
-    // Get admin email from auth
-    const { data: adminUser } = await supabase.auth.admin.getUserById(adminRoles[0].user_id);
-    const adminEmail = adminUser?.user?.email;
+    // Get all admin emails from auth
+    const adminEmails: string[] = [];
+    for (const role of adminRoles) {
+      const { data: adminUser } = await supabase.auth.admin.getUserById(role.user_id);
+      if (adminUser?.user?.email) {
+        adminEmails.push(adminUser.user.email);
+      }
+    }
 
-    if (!adminEmail) {
-      console.error("Admin email not found");
+    if (adminEmails.length === 0) {
+      console.error("Admin emails not found");
       return new Response(JSON.stringify({ success: false, error: "Admin email not found" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const { data: customerUser } = await supabase.auth.admin.getUserById(userId);
+    const customerEmail = customerUser?.user?.email;
 
     const customerName = profile?.full_name || "N/A";
     const customerPhone = profile?.phone || "N/A";
@@ -88,7 +96,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         sender: { name: "SocialBoostMz", email: BREVO_SENDER_EMAIL },
-        to: [{ email: adminEmail }],
+        to: adminEmails.map((email) => ({ email })),
         subject: `🛒 Novo Pedido #${orderId.slice(0, 8)} - ${serviceName}`,
         htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -134,7 +142,67 @@ serve(async (req) => {
       throw new Error(`Brevo API failed [${emailResponse.status}]: ${JSON.stringify(emailResult)}`);
     }
 
-    console.log("Email notification sent successfully to", adminEmail);
+    console.log("Email notification sent successfully to", adminEmails.join(", "));
+
+    if (customerEmail) {
+      try {
+        const customerEmailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { name: "SocialBoostMz", email: BREVO_SENDER_EMAIL },
+            to: [{ email: customerEmail, name: customerName }],
+            subject: `🛒 Pedido Recebido #${orderId.slice(0, 8)} - ${serviceName}`,
+            htmlContent: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <h2 style="color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px;">🛒 Pedido Recebido com Sucesso</h2>
+                <p>Olá, <strong>${customerName}</strong>,</p>
+                <p>Recebemos o seu pedido e já o enviámos para processamento no nosso sistema.</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                  <tr style="background: #f9fafb;">
+                    <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">ID do Pedido</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb;">#${orderId.slice(0, 8)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Serviço</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb;">${serviceName}</td>
+                  </tr>
+                  <tr style="background: #f9fafb;">
+                    <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Quantidade</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb;">${Number(quantity).toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Link de Destino</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb;"><a href="${link}" style="color: #7c3aed; text-decoration: none;">${link}</a></td>
+                  </tr>
+                  <tr style="background: #f9fafb;">
+                    <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Valor Total</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold; color: #059669;">${Number(totalPrice).toLocaleString()} MZN</td>
+                  </tr>
+                </table>
+                
+                <p>O seu pedido está a ser entregue. Pode acompanhar o estado do seu pedido a qualquer momento na secção "Histórico de Pedidos" da nossa plataforma.</p>
+                <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+                <p style="color: #6b7280; font-size: 12px; text-align: center;">SocialBoostMz - Impulsione suas redes sociais</p>
+              </div>
+            `,
+          }),
+        });
+
+        if (customerEmailResponse.ok) {
+          console.log("Customer email notification sent successfully to", customerEmail);
+        } else {
+          console.error("Failed to send customer notification email:", await customerEmailResponse.text());
+        }
+      } catch (custError) {
+        console.error("Customer email notification failed:", custError);
+      }
+    }
 
     // Also send Pushcut notification (like payments)
     try {

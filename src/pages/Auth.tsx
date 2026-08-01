@@ -142,6 +142,15 @@ const Auth = () => {
           return;
         }
 
+        // Send welcome email via edge function
+        try {
+          await supabase.functions.invoke("send-welcome-email", {
+            body: { email: formData.email, fullName: formData.fullName },
+          });
+        } catch (welcomeError) {
+          console.error("Failed to send welcome email:", welcomeError);
+        }
+
         // Update profile with additional data
         const { data: { user: newUser } } = await supabase.auth.getUser();
         if (newUser) {
