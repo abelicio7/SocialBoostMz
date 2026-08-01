@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +61,13 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const { playSound } = useNotificationSound();
 
+  // Profile and Password states
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editConfirmPassword, setEditConfirmPassword] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!user) {
@@ -82,6 +90,68 @@ const Dashboard = () => {
     },
     enabled: !!user,
   });
+
+  // Sync profile input states when data is loaded
+  useEffect(() => {
+    if (profile) {
+      setEditName(profile.full_name || "");
+      setEditPhone(profile.phone || "");
+    }
+  }, [profile]);
+
+  const handleUpdateProfile = async () => {
+    const updates: Record<string, string> = {};
+    if (!profile?.full_name && editName.trim()) {
+      updates.full_name = editName.trim();
+    }
+    if (!profile?.phone && editPhone.trim()) {
+      updates.phone = editPhone.trim();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      toast.info("Nenhuma informação nova para guardar");
+      return;
+    }
+
+    setProfileLoading(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", user?.id);
+    setProfileLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Perfil atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!editPassword || editPassword.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    if (editPassword !== editConfirmPassword) {
+      toast.error("As senhas introduzidas não coincidem");
+      return;
+    }
+
+    setProfileLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      password: editPassword,
+    });
+    setProfileLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Palavra-passe atualizada com sucesso!");
+      setEditPassword("");
+      setEditConfirmPassword("");
+    }
+  };
 
   // Fetch orders
   const { data: orders } = useQuery({
@@ -825,7 +895,8 @@ const Dashboard = () => {
           )}
 
           {activeTab === "profile" && (
-            <div className="max-w-lg">
+            <div className="max-w-lg space-y-6">
+              {/* Profile Card Header */}
               <div className="p-6 rounded-2xl glass-card space-y-6">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
@@ -833,34 +904,117 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <h2 className="font-display text-xl font-bold">{profile?.full_name || 'Utilizador'}</h2>
-                    <p className="text-muted-foreground">{user.email}</p>
+                    <p className="text-muted-foreground text-sm">{user?.email}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-muted/50">
-                    <p className="text-sm text-muted-foreground mb-1">Telefone</p>
-                    <p className="font-medium">{profile?.phone || 'Não definido'}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Saldo Atual</p>
+                    <p className="font-bold text-primary text-lg">{balance.toLocaleString()} MZN</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-muted/50">
-                    <p className="text-sm text-muted-foreground mb-1">Membro desde</p>
-                    <p className="font-medium">
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Membro desde</p>
+                    <p className="font-medium text-sm">
                       {profile?.created_at 
-                        ? new Date(profile.created_at).toLocaleDateString('pt-PT', { year: 'numeric', month: 'long', day: 'numeric' })
+                        ? new Date(profile.created_at).toLocaleDateString('pt-PT', { year: 'numeric', month: 'short' })
                         : 'N/A'}
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-muted/50">
-                    <p className="text-sm text-muted-foreground mb-1">Saldo Actual</p>
-                    <p className="font-bold text-primary text-xl">{balance.toLocaleString()} MZN</p>
-                  </div>
                 </div>
-
-                <Button variant="destructive" className="w-full" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Terminar Sessão
-                </Button>
               </div>
+
+              {/* Edit Profile Form */}
+              <div className="p-6 rounded-2xl glass-card space-y-4">
+                <h3 className="font-display text-lg font-bold mb-2">Editar Perfil</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Nota: Por segurança, os campos já preenchidos não podem ser alterados.
+                </p>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profile-name">Nome Completo</Label>
+                    <Input
+                      id="profile-name"
+                      type="text"
+                      placeholder="Nome completo"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      disabled={!!profile?.full_name}
+                      className="bg-card border-border disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profile-phone">Número de Telemóvel</Label>
+                    <Input
+                      id="profile-phone"
+                      type="tel"
+                      placeholder="Número de telemóvel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      disabled={!!profile?.phone}
+                      className="bg-card border-border disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  {(!profile?.full_name || !profile?.phone) && (
+                    <Button 
+                      className="w-full mt-2" 
+                      onClick={handleUpdateProfile} 
+                      disabled={profileLoading || (!editName.trim() && !editPhone.trim()) || (!!profile?.full_name && !!profile?.phone)}
+                    >
+                      {profileLoading ? "A guardar..." : "Guardar Dados Pessoais"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Change Password Form */}
+              <div className="p-6 rounded-2xl glass-card space-y-4">
+                <h3 className="font-display text-lg font-bold mb-4">Alterar Palavra-passe</h3>
+                
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="new-pwd">Nova Palavra-passe</Label>
+                    <Input
+                      id="new-pwd"
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      className="bg-card border-border"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirm-pwd">Confirmar Nova Palavra-passe</Label>
+                    <Input
+                      id="confirm-pwd"
+                      type="password"
+                      placeholder="Repita a palavra-passe"
+                      value={editConfirmPassword}
+                      onChange={(e) => setEditConfirmPassword(e.target.value)}
+                      className="bg-card border-border"
+                    />
+                  </div>
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-2" 
+                    onClick={handleUpdatePassword} 
+                    disabled={profileLoading || !editPassword}
+                  >
+                    {profileLoading ? "A atualizar..." : "Atualizar Palavra-passe"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Log Out */}
+              <Button variant="destructive" className="w-full" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Terminar Sessão
+              </Button>
             </div>
           )}
         </div>
