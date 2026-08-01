@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,12 @@ const registerSchema = z.object({
 });
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const isResetMode = searchParams.get("reset") === "true";
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,22 +48,74 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
-  // Redirect if already logged in
+  // Redirect if already logged in (skip if in password reset mode)
   useEffect(() => {
-    if (user) {
+    if (user && !isResetMode) {
       if (isAdmin) {
         navigate("/admin");
       } else {
         navigate("/dashboard");
       }
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, isAdmin, navigate, isResetMode]);
 
-  const canSubmit = isLogin 
+  const canSubmit = isForgotPassword
+    ? !!formData.email
+    : isResetMode
+    ? !!(newPassword && confirmPassword)
+    : isLogin 
     ? formData.email && formData.password 
     : (acceptedTerms && acceptedRisks && acceptedRefund && formData.email && formData.password && formData.fullName);
 
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) {
+      toast.error("Por favor, introduza o seu e-mail.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("E-mail de recuperação enviado com sucesso! Verifique a sua caixa de entrada.");
+      setIsForgotPassword(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas introduzidas não coincidem.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Senha atualizada com sucesso!");
+      navigate("/dashboard");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
+    if (isForgotPassword) {
+      return handleForgotPasswordSubmit(e);
+    }
+    if (isResetMode) {
+      return handleResetPasswordSubmit(e);
+    }
     e.preventDefault();
     setErrors({});
     setLoading(true);
@@ -189,10 +247,20 @@ const Auth = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="font-display text-3xl font-bold mb-2">
-              {isLogin ? "Bem-vindo de volta" : "Criar conta"}
+              {isResetMode
+                ? "Definir nova senha"
+                : isForgotPassword
+                ? "Recuperar senha"
+                : isLogin
+                ? "Bem-vindo de volta"
+                : "Criar conta"}
             </h1>
             <p className="text-muted-foreground">
-              {isLogin
+              {isResetMode
+                ? "Introduza a sua nova palavra-passe abaixo"
+                : isForgotPassword
+                ? "Introduza o seu e-mail para receber o link de recuperação"
+                : isLogin
                 ? "Entre na sua conta para continuar"
                 : "Registe-se para começar a crescer nas redes sociais"}
             </p>
@@ -200,139 +268,194 @@ const Auth = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
+            {isResetMode ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome completo *</Label>
+                  <Label htmlFor="new-password">Nova Palavra-passe *</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      id="name"
-                      type="text"
-                      placeholder="O seu nome"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      className={`pl-10 h-12 bg-card border-border ${errors.fullName ? 'border-destructive' : ''}`}
+                      id="new-password"
+                      type="password"
+                      placeholder="No mínimo 6 caracteres"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-10 h-12 bg-card border-border"
                     />
                   </div>
-                  {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone (opcional)</Label>
+                  <Label htmlFor="confirm-password">Confirmar Nova Palavra-passe *</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+258 84 000 0000"
-                      value={formData.phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      id="confirm-password"
+                      type="password"
+                      placeholder="Repita a nova palavra-passe"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10 h-12 bg-card border-border"
                     />
                   </div>
                 </div>
               </>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className={`pl-10 h-12 bg-card border-border ${errors.email ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Palavra-passe *</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className={`pl-10 pr-10 h-12 bg-card border-border ${errors.password ? 'border-destructive' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-            </div>
-
-            {!isLogin && (
-              <div className="space-y-4 p-4 rounded-xl bg-card border border-border">
-                <p className="text-sm font-medium text-foreground">
-                  Para criar uma conta, deve aceitar:
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      id="terms"
-                      checked={acceptedTerms}
-                      onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                      Li e aceito os{" "}
-                      <Link to="/termos" className="text-primary hover:underline">
-                        Termos de Uso
-                      </Link>
-                    </Label>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      id="refund"
-                      checked={acceptedRefund}
-                      onCheckedChange={(checked) => setAcceptedRefund(checked as boolean)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="refund" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                      Li e aceito a{" "}
-                      <Link to="/reembolso" className="text-primary hover:underline">
-                        Política de Reembolso
-                      </Link>{" "}
-                      (saldo não reembolsável)
-                    </Label>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      id="risks"
-                      checked={acceptedRisks}
-                      onCheckedChange={(checked) => setAcceptedRisks(checked as boolean)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="risks" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                      Compreendo os{" "}
-                      <span className="text-warning">riscos de queda até 10%</span> nos serviços
-                    </Label>
-                  </div>
+            ) : isForgotPassword ? (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className="pl-10 h-12 bg-card border-border"
+                  />
                 </div>
               </div>
-            )}
+            ) : (
+              <>
+                {!isLogin && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome completo *</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="O seu nome"
+                          value={formData.fullName}
+                          onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                          className={`pl-10 h-12 bg-card border-border ${errors.fullName ? 'border-destructive' : ''}`}
+                        />
+                      </div>
+                      {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
+                    </div>
 
-            {isLogin && (
-              <div className="flex items-center justify-end">
-                <Link to="/recuperar" className="text-sm text-primary hover:underline">
-                  Esqueceu a senha?
-                </Link>
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefone (opcional)</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+258 84 000 0000"
+                          value={formData.phone}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          className="pl-10 h-12 bg-card border-border"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className={`pl-10 h-12 bg-card border-border ${errors.email ? 'border-destructive' : ''}`}
+                    />
+                  </div>
+                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Palavra-passe *</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      className={`pl-10 pr-10 h-12 bg-card border-border ${errors.password ? 'border-destructive' : ''}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                </div>
+
+                {!isLogin && (
+                  <div className="space-y-4 p-4 rounded-xl bg-card border border-border">
+                    <p className="text-sm font-medium text-foreground">
+                      Para criar uma conta, deve aceitar:
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="terms"
+                          checked={acceptedTerms}
+                          onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                          className="mt-0.5"
+                        />
+                        <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                          Li e aceito os{" "}
+                          <Link to="/termos" className="text-primary hover:underline">
+                            Termos de Uso
+                          </Link>
+                        </Label>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="refund"
+                          checked={acceptedRefund}
+                          onCheckedChange={(checked) => setAcceptedRefund(checked as boolean)}
+                          className="mt-0.5"
+                        />
+                        <Label htmlFor="refund" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                          Li e aceito a{" "}
+                          <Link to="/reembolso" className="text-primary hover:underline">
+                            Política de Reembolso
+                          </Link>{" "}
+                          (saldo não reembolsável)
+                        </Label>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="risks"
+                          checked={acceptedRisks}
+                          onCheckedChange={(checked) => setAcceptedRisks(checked as boolean)}
+                          className="mt-0.5"
+                        />
+                        <Label htmlFor="risks" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                          Compreendo os{" "}
+                          <span className="text-warning">riscos de queda até 10%</span> nos serviços
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isLogin && (
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-sm text-primary hover:underline bg-transparent border-0 cursor-pointer p-0"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             <Button
@@ -346,7 +469,13 @@ const Auth = () => {
                 <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  {isLogin ? "Entrar" : "Criar Conta"}
+                  {isResetMode
+                    ? "Atualizar Palavra-passe"
+                    : isForgotPassword
+                    ? "Enviar Link de Recuperação"
+                    : isLogin
+                    ? "Entrar"
+                    : "Criar Conta"}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -355,19 +484,45 @@ const Auth = () => {
           </form>
 
           {/* Toggle */}
-          <p className="text-center text-muted-foreground mt-6">
-            {isLogin ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-              className="text-primary font-medium hover:underline"
-            >
-              {isLogin ? "Criar conta" : "Entrar"}
-            </button>
-          </p>
+          {!isResetMode && (
+            <p className="text-center text-muted-foreground mt-6">
+              {isForgotPassword ? (
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(false)}
+                  className="text-primary font-medium hover:underline bg-transparent border-0 cursor-pointer"
+                >
+                  Voltar para o Login
+                </button>
+              ) : (
+                <>
+                  {isLogin ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setErrors({});
+                    }}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    {isLogin ? "Criar conta" : "Entrar"}
+                  </button>
+                </>
+              )}
+            </p>
+          )}
+
+          {isResetMode && (
+            <p className="text-center text-muted-foreground mt-6">
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="text-primary font-medium hover:underline bg-transparent border-0 cursor-pointer"
+              >
+                Voltar para o Login
+              </button>
+            </p>
+          )}
         </div>
       </div>
 

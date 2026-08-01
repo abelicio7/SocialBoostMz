@@ -7,8 +7,9 @@ const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      try {
+        const url = new URL(window.location.href);
+        const isRecovery = url.searchParams.get("type") === "recovery" || url.hash.includes("type=recovery");
+
         // Get the session from the URL hash (OAuth callback)
         const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -19,6 +20,11 @@ const AuthCallback = () => {
         }
 
         if (session) {
+          if (isRecovery) {
+            navigate("/auth?reset=true");
+            return;
+          }
+
           // Check if user is admin
           const { data: roleData } = await supabase
             .from('user_roles')
