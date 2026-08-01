@@ -7,6 +7,8 @@ const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const handleAuthCallback = async () => {
+      try {
         const url = new URL(window.location.href);
         const isRecovery = url.searchParams.get("type") === "recovery" || url.hash.includes("type=recovery");
 
