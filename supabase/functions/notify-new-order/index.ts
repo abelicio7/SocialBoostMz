@@ -12,10 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
+    const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
+    if (!BREVO_API_KEY) {
+      throw new Error("BREVO_API_KEY is not configured");
     }
+    const BREVO_SENDER_EMAIL = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@socialboostmz.com";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -77,18 +78,19 @@ serve(async (req) => {
     const serviceName = service?.name || "N/A";
     const platform = service?.platform || "N/A";
 
-    // Send email via Resend
-    const emailResponse = await fetch("https://api.resend.com/emails", {
+    // Send email via Brevo
+    const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "api-key": BREVO_API_KEY,
         "Content-Type": "application/json",
+        "Accept": "application/json",
       },
       body: JSON.stringify({
-        from: "SocialBoost <onboarding@resend.dev>",
-        to: [adminEmail],
+        sender: { name: "SocialBoostMz", email: BREVO_SENDER_EMAIL },
+        to: [{ email: adminEmail }],
         subject: `🛒 Novo Pedido #${orderId.slice(0, 8)} - ${serviceName}`,
-        html: `
+        htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px;">🛒 Novo Pedido Recebido</h2>
             
@@ -128,8 +130,8 @@ serve(async (req) => {
     const emailResult = await emailResponse.json();
     
     if (!emailResponse.ok) {
-      console.error("Resend error:", JSON.stringify(emailResult));
-      throw new Error(`Resend API failed [${emailResponse.status}]: ${JSON.stringify(emailResult)}`);
+      console.error("Brevo error:", JSON.stringify(emailResult));
+      throw new Error(`Brevo API failed [${emailResponse.status}]: ${JSON.stringify(emailResult)}`);
     }
 
     console.log("Email notification sent successfully to", adminEmail);
