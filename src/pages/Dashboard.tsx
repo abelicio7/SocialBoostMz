@@ -924,7 +924,7 @@ const Dashboard = () => {
 
               {/* Histórico de Depósitos */}
               <div className="pt-4">
-                <h2 className="font-display text-lg font-bold mb-4">Histórico de Depósitos (Zumbopay)</h2>
+                <h2 className="font-display text-lg font-bold mb-4">Histórico de Depósitos</h2>
                 {deposits?.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Sem depósitos registados ainda</p>
                 ) : (
