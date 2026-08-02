@@ -10,6 +10,7 @@ export interface PlatformSettings {
   exchange_rate_brl_mzn: number;
   exchange_rate_auto: boolean;
   exchange_rate_updated_at: string | null;
+  dashboard_announcement: string | null;
 }
 
 export const usePlatformSettings = () => {
