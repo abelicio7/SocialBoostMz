@@ -1,0 +1,25 @@
+{
+  "short_name": "SocialBoostMz",
+  "name": "SocialBoostMz - Impulsione suas Redes Sociais",
+  "description": "Plataforma líder em crescimento de redes sociais em Moçambique. Compre seguidores, gostos e visualizações com pagamentos automáticos via M-Pesa e e-Mola.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#0b0f19",
+  "theme_color": "#f59e0b",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/"
+}
