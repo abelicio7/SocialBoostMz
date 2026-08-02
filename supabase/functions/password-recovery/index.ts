@@ -17,11 +17,6 @@ serve(async (req) => {
     
     // Create standard public schema client
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    
-    // Create client to query auth schema directly for user verification
-    const authClient = createClient(supabaseUrl, serviceRoleKey, {
-      db: { schema: 'auth' }
-    });
 
     const body = await req.json().catch(() => ({}));
     const { action, email, code, new_password } = body;
@@ -37,19 +32,16 @@ serve(async (req) => {
 
     // Action 1: Request Code
     if (action === "request") {
-      // 1. Verify user exists in auth.users
-      const { data: authUser, error: userError } = await authClient
-        .from("users")
-        .select("id, email")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+      // 1. Verify user exists in auth.users by calling our custom RPC
+      const { data: userId, error: userError } = await supabase
+        .rpc("get_user_id_by_email", { p_email: normalizedEmail });
 
       if (userError) {
         console.error("Auth user lookup error:", userError);
         throw userError;
       }
 
-      if (!authUser) {
+      if (!userId) {
         return new Response(JSON.stringify({ success: false, error: "Nenhuma conta encontrada com este e-mail." }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -108,7 +100,7 @@ serve(async (req) => {
                 </span>
               </div>
               
-              <p style="color: #6b7280; font-size: 13px;">Este código é válido por <strong>15 minutos</strong>. Se não solicitou a redefinição de palavra-passe, pode ignorar este e-mail com segurança.</p>
+              <p style="color: #6b7280; font-size: 13px;">Este código é válido por <strong>15 minutos</strong>. Se não solicitou a redefinção de palavra-passe, pode ignorar este e-mail com segurança.</p>
               <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
               <p style="color: #9ca3af; font-size: 12px; text-align: center;">SocialBoostMz - Impulsione suas redes sociais</p>
             </div>
@@ -161,22 +153,19 @@ serve(async (req) => {
       }
 
       // 3. Find user and update password
-      const { data: authUser, error: userError } = await authClient
-        .from("users")
-        .select("id, email")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+      const { data: userId, error: userError } = await supabase
+        .rpc("get_user_id_by_email", { p_email: normalizedEmail });
 
       if (userError) throw userError;
 
-      if (!authUser) {
+      if (!userId) {
         return new Response(JSON.stringify({ success: false, error: "Utilizador não encontrado." }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const { error: updateErr } = await supabase.auth.admin.updateUserById(authUser.id, {
+      const { error: updateErr } = await supabase.auth.admin.updateUserById(userId, {
         password: new_password,
       });
       if (updateErr) throw updateErr;
