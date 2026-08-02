@@ -14,7 +14,14 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Create standard public schema client
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    
+    // Create client to query auth schema directly for user verification
+    const authClient = createClient(supabaseUrl, serviceRoleKey, {
+      db: { schema: 'auth' }
+    });
 
     const body = await req.json().catch(() => ({}));
     const { action, email, code, new_password } = body;
@@ -30,12 +37,19 @@ serve(async (req) => {
 
     // Action 1: Request Code
     if (action === "request") {
-      // 1. Verify user exists in auth
-      const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
-      if (userError) throw userError;
+      // 1. Verify user exists in auth.users
+      const { data: authUser, error: userError } = await authClient
+        .from("users")
+        .select("id, email")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
 
-      const foundUser = usersData.users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
-      if (!foundUser) {
+      if (userError) {
+        console.error("Auth user lookup error:", userError);
+        throw userError;
+      }
+
+      if (!authUser) {
         return new Response(JSON.stringify({ success: false, error: "Nenhuma conta encontrada com este e-mail." }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -147,18 +161,22 @@ serve(async (req) => {
       }
 
       // 3. Find user and update password
-      const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
+      const { data: authUser, error: userError } = await authClient
+        .from("users")
+        .select("id, email")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
       if (userError) throw userError;
 
-      const foundUser = usersData.users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
-      if (!foundUser) {
+      if (!authUser) {
         return new Response(JSON.stringify({ success: false, error: "Utilizador não encontrado." }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const { error: updateErr } = await supabase.auth.admin.updateUserById(foundUser.id, {
+      const { error: updateErr } = await supabase.auth.admin.updateUserById(authUser.id, {
         password: new_password,
       });
       if (updateErr) throw updateErr;
