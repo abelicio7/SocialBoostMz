@@ -25,7 +25,14 @@ const registerSchema = z.object({
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const isResetMode = searchParams.get("reset") === "true";
+  const [localResetMode, setLocalResetMode] = useState(false);
+  const isResetActive = isResetMode || localResetMode;
+  
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpToken, setOtpToken] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -50,18 +57,20 @@ const Auth = () => {
 
   // Redirect if already logged in (skip if in password reset mode)
   useEffect(() => {
-    if (user && !isResetMode) {
+    if (user && !isResetActive) {
       if (isAdmin) {
         navigate("/admin");
       } else {
         navigate("/dashboard");
       }
     }
-  }, [user, isAdmin, navigate, isResetMode]);
+  }, [user, isAdmin, navigate, isResetActive]);
 
-  const canSubmit = isForgotPassword
+  const canSubmit = isVerifyingOtp
+    ? otpToken.length === 6
+    : isForgotPassword
     ? !!formData.email
-    : isResetMode
+    : isResetActive
     ? !!(newPassword && confirmPassword)
     : isLogin 
     ? formData.email && formData.password 
@@ -81,8 +90,32 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("E-mail de recuperação enviado com sucesso! Verifique a sua caixa de entrada.");
+      setResetEmail(formData.email);
+      setIsVerifyingOtp(true);
+      toast.success("E-mail de recuperação enviado! Verifique a sua caixa de entrada e introduza o código.");
+    }
+  };
+
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpToken || otpToken.length < 6) {
+      toast.error("Por favor, introduza o código de 6 dígitos.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: resetEmail,
+      token: otpToken.trim(),
+      type: "recovery",
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message || "Código inválido ou expirado. Tente novamente.");
+    } else {
+      toast.success("Código verificado com sucesso! Defina a sua nova senha.");
+      setIsVerifyingOtp(false);
       setIsForgotPassword(false);
+      setLocalResetMode(true);
     }
   };
 
@@ -110,10 +143,13 @@ const Auth = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (isVerifyingOtp) {
+      return handleVerifyOtpSubmit(e);
+    }
     if (isForgotPassword) {
       return handleForgotPasswordSubmit(e);
     }
-    if (isResetMode) {
+    if (isResetActive) {
       return handleResetPasswordSubmit(e);
     }
     e.preventDefault();
@@ -255,11 +291,13 @@ const Auth = () => {
                 ? "Bem-vindo de volta"
                 : "Criar conta"}
             </h1>
-            <p className="text-muted-foreground">
-              {isResetMode
+            <p className="text-muted-foreground text-center">
+              {isResetActive
                 ? "Introduza a sua nova palavra-passe abaixo"
+                : isVerifyingOtp
+                ? "Introduza o código de 6 dígitos enviado para o seu e-mail"
                 : isForgotPassword
-                ? "Introduza o seu e-mail para receber o link de recuperação"
+                ? "Introduza o seu e-mail para receber o código de recuperação"
                 : isLogin
                 ? "Entre na sua conta para continuar"
                 : "Registe-se para começar a crescer nas redes sociais"}
@@ -268,7 +306,7 @@ const Auth = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {isResetMode ? (
+            {isResetActive ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Nova Palavra-passe *</Label>
@@ -300,6 +338,22 @@ const Auth = () => {
                   </div>
                 </div>
               </>
+            ) : isVerifyingOtp ? (
+              <div className="space-y-2">
+                <Label htmlFor="otp-code">Código de Recuperação (6 dígitos) *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="otp-code"
+                    type="text"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={otpToken}
+                    onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, ""))}
+                    className="pl-10 h-12 bg-card border-border text-center text-lg font-bold tracking-widest"
+                  />
+                </div>
+              </div>
             ) : isForgotPassword ? (
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
@@ -469,10 +523,12 @@ const Auth = () => {
                 <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  {isResetMode
+                  {isResetActive
                     ? "Atualizar Palavra-passe"
+                    : isVerifyingOtp
+                    ? "Verificar Código"
                     : isForgotPassword
-                    ? "Enviar Link de Recuperação"
+                    ? "Enviar Código de Recuperação"
                     : isLogin
                     ? "Entrar"
                     : "Criar Conta"}
@@ -484,9 +540,21 @@ const Auth = () => {
           </form>
 
           {/* Toggle */}
-          {!isResetMode && (
+          {!isResetActive && (
             <p className="text-center text-muted-foreground mt-6">
-              {isForgotPassword ? (
+              {isVerifyingOtp ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsVerifyingOtp(false);
+                    setIsForgotPassword(true);
+                    setOtpToken("");
+                  }}
+                  className="text-primary font-medium hover:underline bg-transparent border-0 cursor-pointer"
+                >
+                  Voltar para inserir o e-mail
+                </button>
+              ) : isForgotPassword ? (
                 <button
                   type="button"
                   onClick={() => setIsForgotPassword(false)}
@@ -512,11 +580,14 @@ const Auth = () => {
             </p>
           )}
 
-          {isResetMode && (
+          {isResetActive && (
             <p className="text-center text-muted-foreground mt-6">
               <button
                 type="button"
-                onClick={() => navigate("/auth")}
+                onClick={() => {
+                  setLocalResetMode(false);
+                  navigate("/auth");
+                }}
                 className="text-primary font-medium hover:underline bg-transparent border-0 cursor-pointer"
               >
                 Voltar para o Login
