@@ -6,6 +6,11 @@ SECURITY DEFINER
 AS $$
 BEGIN
   IF (OLD.balance IS DISTINCT FROM NEW.balance) THEN
+    -- Allow bypass if the transaction variable is set to 'true'
+    IF nullif(current_setting('app.bypass_balance_trigger', true), '') = 'true' THEN
+      RETURN NEW;
+    END IF;
+
     -- Bloquear se for utilizador comum autenticado (não admin)
     IF (auth.role() = 'authenticated') AND NOT (public.has_role(auth.uid(), 'admin')) THEN
       RAISE EXCEPTION 'Não tem permissão para alterar o seu próprio saldo diretamente.';
@@ -90,10 +95,16 @@ BEGIN
     RAISE EXCEPTION 'Saldo insuficiente para realizar este pedido.';
   END IF;
 
+  -- Set bypass configuration parameter for the duration of this transaction
+  PERFORM set_config('app.bypass_balance_trigger', 'true', true);
+
   -- Debitar saldo do perfil do utilizador
   UPDATE public.profiles
   SET balance = balance - v_total_price
   WHERE id = v_user_id;
+
+  -- Reset bypass configuration parameter
+  PERFORM set_config('app.bypass_balance_trigger', '', true);
 
   -- Criar o pedido
   INSERT INTO public.orders (user_id, service_id, quantity, link, total_price, status)
