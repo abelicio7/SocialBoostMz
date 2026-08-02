@@ -222,7 +222,7 @@ serve(async (req) => {
           
           const message = JSON.stringify({
             title: "Novo pedido! 🛒",
-            body: `Serviço: ${serviceName} (${Number(totalPrice).toLocaleString()} MT) - ID: ${orderId.slice(0, 8)}`,
+            body: `Um novo pedido de ${Number(totalPrice).toLocaleString()} MT foi registrado na plataforma.`,
             url: "/admin/pedidos"
           });
 
