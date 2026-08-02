@@ -157,6 +157,7 @@ const AdminOrders = () => {
           service_id: providerServiceId,
           link: order.link,
           quantity: order.quantity,
+          order_id: order.id,
         },
       });
       

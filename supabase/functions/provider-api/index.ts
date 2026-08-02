@@ -77,14 +77,32 @@ serve(async (req) => {
     const action = body?.action || path;
     // POST /order - Create order at provider
     if (action === "order") {
-      const { service_id, link, quantity } = body;
-      console.log(`Creating provider order: service=${service_id}, link=${link}, qty=${quantity}`);
+      const { service_id, link, quantity, order_id } = body;
+      console.log(`Creating provider order: service=${service_id}, link=${link}, qty=${quantity}, order_id=${order_id}`);
       const result = await providerRequest("add", {
         service: service_id.toString(),
         link,
         quantity: quantity.toString(),
       });
       console.log("Provider order result:", JSON.stringify(result));
+
+      if (result && result.order && order_id) {
+        console.log(`Updating local order ${order_id} with provider_order_id ${result.order}`);
+        const { error: dbErr } = await supabaseAdmin
+          .from("orders")
+          .update({
+            provider_order_id: result.order.toString(),
+            status: "processing",
+          })
+          .eq("id", order_id);
+          
+        if (dbErr) {
+          console.error(`Failed to update order ${order_id} with provider_order_id in DB:`, dbErr);
+        } else {
+          console.log(`Order ${order_id} updated successfully to processing.`);
+        }
+      }
+
       return new Response(JSON.stringify({ success: true, data: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

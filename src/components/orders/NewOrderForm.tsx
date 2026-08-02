@@ -137,6 +137,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
               service_id: selectedService.provider_service_id,
               link: link.trim(),
               quantity,
+              order_id: order.id,
             },
           });
 
@@ -144,7 +145,7 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
             await supabase.from('orders').update({
               provider_order_id: providerResult.data.order.toString(),
               status: 'processing',
-            }).eq('id', order.id);
+            }).eq('id', order.id).catch(() => {});
 
             await supabase.functions.invoke('sync-order-status', {
               body: { order_ids: [order.id] },
