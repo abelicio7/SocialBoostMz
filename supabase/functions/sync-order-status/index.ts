@@ -152,6 +152,31 @@ serve(async (req) => {
           continue;
         }
 
+        // Send Web Push notification to client on status update
+        if (mappedStatus !== order.status) {
+          try {
+            let title = "Pedido Atualizado! 📦";
+            let body = `O seu pedido #${order.id.slice(0, 8)} (${(order.services as any)?.name || "Serviço"}) foi atualizado para ${mappedStatus === "completed" ? "Concluído" : mappedStatus === "cancelled" ? "Cancelado" : mappedStatus}.`;
+            if (mappedStatus === "completed") {
+              title = "Pedido Concluído! ✅";
+            } else if (mappedStatus === "cancelled") {
+              title = "Pedido Cancelado! ❌";
+              body = `O seu pedido #${order.id.slice(0, 8)} foi cancelado e o valor de ${order.total_price} MZN foi reembolsado para o seu saldo.`;
+            }
+
+            await supabase.functions.invoke("send-push", {
+              body: {
+                user_id: order.user_id,
+                title,
+                body,
+                url: "/dashboard?tab=orders"
+              }
+            });
+          } catch (pushErr) {
+            console.error(`Failed to send status update push for order ${order.id}:`, pushErr);
+          }
+        }
+
         if (mappedStatus === "cancelled" && order.status !== "cancelled") {
           const { data: profile } = await supabase
             .from("profiles")

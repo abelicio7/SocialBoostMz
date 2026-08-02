@@ -42,9 +42,17 @@ interface NewOrderFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preselectedServiceId?: string;
+  initialServiceId?: string;
+  initialQuantity?: number;
 }
 
-const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderFormProps) => {
+const NewOrderForm = ({ 
+  open, 
+  onOpenChange, 
+  preselectedServiceId,
+  initialServiceId,
+  initialQuantity
+}: NewOrderFormProps) => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [link, setLink] = useState("");
   const [quantity, setQuantity] = useState<number>(100);
@@ -88,12 +96,17 @@ const NewOrderForm = ({ open, onOpenChange, preselectedServiceId }: NewOrderForm
 
   // Profile already fetched above
 
-  // Set preselected service
+  // Set preselected or initial service/quantity
   useEffect(() => {
     if (preselectedServiceId) {
       setSelectedServiceId(preselectedServiceId);
+    } else if (initialServiceId) {
+      setSelectedServiceId(initialServiceId);
     }
-  }, [preselectedServiceId]);
+    if (initialQuantity) {
+      setQuantity(initialQuantity);
+    }
+  }, [preselectedServiceId, initialServiceId, initialQuantity]);
 
   // Get selected service details
   const selectedService = services?.find(s => s.id === selectedServiceId);

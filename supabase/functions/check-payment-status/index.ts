@@ -97,12 +97,17 @@ serve(async (req) => {
         });
 
         try {
-          await fetch("https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: `Recarregamento de ${pending.amount} MZN APROVADO💰` }),
+          await supabase.functions.invoke("send-push", {
+            body: {
+              user_id: pending.user_id,
+              title: "Depósito Confirmado! 💰",
+              body: `A sua recarga de ${pending.amount} MZN foi creditada com sucesso via ${pending.method.toUpperCase()}.`,
+              url: "/dashboard?tab=wallet"
+            }
           });
-        } catch (_) { /* ignore */ }
+        } catch (e) {
+          console.error("Failed to send deposit push notification:", e);
+        }
       }
       return new Response(JSON.stringify({ success: true, status: "success" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -16,10 +16,10 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function useAdminPushNotifications() {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!user || !isAdmin || !VAPID_PUBLIC_KEY) return;
+    if (!user || !VAPID_PUBLIC_KEY) return;
 
     const registerAndSubscribe = async () => {
       try {
@@ -85,5 +85,5 @@ export function useAdminPushNotifications() {
     // Delay slightly to avoid blocking critical initial loads
     const timer = setTimeout(registerAndSubscribe, 2000);
     return () => clearTimeout(timer);
-  }, [user, isAdmin]);
+  }, [user]);
 }

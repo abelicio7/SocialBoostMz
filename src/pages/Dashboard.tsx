@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrderStatusSync } from "@/hooks/useOrderStatusSync";
+import { useAdminPushNotifications } from "@/hooks/useAdminPushNotifications";
 import { toast } from "sonner";
 import NewOrderForm from "@/components/orders/NewOrderForm";
 import TopUpDialog from "@/components/wallet/TopUpDialog";
@@ -34,6 +35,7 @@ import {
   Send,
   Menu,
   Settings,
+  Key,
 } from "lucide-react";
 import {
   Sheet,
@@ -59,12 +61,31 @@ const Dashboard = () => {
   const [newMessage, setNewMessage] = useState("");
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
+  const [initialServiceId, setInitialServiceId] = useState<string | undefined>(undefined);
+  const [initialQuantity, setInitialQuantity] = useState<number | undefined>(undefined);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+
+  const handleOrderDialogClose = (open: boolean) => {
+    setOrderDialogOpen(open);
+    if (!open) {
+      setInitialServiceId(undefined);
+      setInitialQuantity(undefined);
+    }
+  };
+
+  const handleRepeatOrder = (serviceId: string, quantity: number) => {
+    setInitialServiceId(serviceId);
+    setInitialQuantity(quantity);
+    setOrderDialogOpen(true);
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { playSound } = useNotificationSound();
+  
+  // Register push notifications for all users
+  useAdminPushNotifications();
 
   // Profile and Password states
   const [editName, setEditName] = useState("");
@@ -200,6 +221,54 @@ const Dashboard = () => {
       return data;
     },
     enabled: !!user,
+  });
+
+  // Fetch deposits (pending_payments)
+  const { data: deposits } = useQuery({
+    queryKey: ['user-deposits', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('pending_payments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch reseller API key
+  const { data: apiKeyData, refetch: refetchApiKey } = useQuery({
+    queryKey: ['user-api-key', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Generate API key mutation
+  const generateApiKey = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('generate_user_api_key');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      refetchApiKey();
+      toast.success("Chave de API gerada com sucesso!");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao gerar chave de API: " + err.message);
+    }
   });
 
   // Fetch support messages
@@ -352,6 +421,7 @@ const Dashboard = () => {
     { id: "wallet", name: "Carteira", icon: Wallet },
     { id: "support", name: "Suporte", icon: MessageCircle },
     { id: "profile", name: "Perfil", icon: User },
+    { id: "api", name: "API / Revenda", icon: Key },
   ];
 
   if (!user) return null;
@@ -669,6 +739,7 @@ const Dashboard = () => {
                           <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Qtd</th>
                           <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
                           <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Valor</th>
+                          <th className="px-6 py-4 text-center text-sm font-medium text-muted-foreground">Acções</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
@@ -686,6 +757,16 @@ const Dashboard = () => {
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-sm text-right font-medium">{Number(order.total_price).toLocaleString()} MZN</td>
+                              <td className="px-6 py-4 text-center">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 text-primary hover:text-primary hover:bg-primary/10"
+                                  onClick={() => handleRepeatOrder(order.service_id, order.quantity)}
+                                >
+                                  Repetir
+                                </Button>
+                              </td>
                             </tr>
                           );
                         })}
@@ -719,6 +800,7 @@ const Dashboard = () => {
                         <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
                         <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
+                        <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Acções</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -739,6 +821,16 @@ const Dashboard = () => {
                               </Badge>
                             </td>
                             <td className="px-4 py-3 text-sm text-right font-medium">{Number(order.total_price).toLocaleString()} MZN</td>
+                            <td className="px-4 py-3 text-center">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => handleRepeatOrder(order.service_id, order.quantity)}
+                              >
+                                Repetir
+                              </Button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -827,6 +919,62 @@ const Dashboard = () => {
                         </p>
                       </div>
                     ))}
+                  </div>
+              </div>
+
+              {/* Histórico de Depósitos */}
+              <div className="pt-4">
+                <h2 className="font-display text-lg font-bold mb-4">Histórico de Depósitos (Zumbopay)</h2>
+                {deposits?.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Sem depósitos registados ainda</p>
+                ) : (
+                  <div className="rounded-2xl border border-border overflow-x-auto">
+                    <table className="w-full min-w-[500px]">
+                      <thead className="bg-card">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Referência</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Método</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Telefone</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Estado</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {deposits?.map((dep) => {
+                          const statusLabels: Record<string, string> = {
+                            success: "Aprovado",
+                            pending: "Pendente",
+                            failed: "Falhado"
+                          };
+                          const statusColors: Record<string, string> = {
+                            success: "bg-success/20 text-success",
+                            pending: "bg-warning/20 text-warning",
+                            failed: "bg-destructive/20 text-destructive"
+                          };
+                          return (
+                            <tr key={dep.id} className="hover:bg-card/50 transition-colors">
+                              <td className="px-4 py-3 text-sm font-mono truncate max-w-[120px]" title={dep.provider_reference || dep.payment_id}>
+                                #{dep.provider_reference?.slice(0, 12) || dep.payment_id?.slice(0, 12) || "N/A"}
+                              </td>
+                              <td className="px-4 py-3 text-sm capitalize">{dep.method}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{dep.phone}</td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                {new Date(dep.created_at).toLocaleDateString('pt-PT')}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge className={statusColors[dep.status] || "bg-warning/20 text-warning"}>
+                                  {statusLabels[dep.status] || dep.status}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-semibold text-success">
+                                {Number(dep.amount).toLocaleString()} MZN
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -1023,13 +1171,256 @@ const Dashboard = () => {
               </Button>
             </div>
           )}
+
+          {activeTab === "api" && (
+            <div className="space-y-8">
+              {/* Header */}
+              <div>
+                <h1 className="font-display text-2xl md:text-3xl font-bold mb-2">
+                  Desenvolvedores & API de Revenda
+                </h1>
+                <p className="text-muted-foreground">
+                  Integre os serviços da SocialBoostMz diretamente na sua plataforma de revenda de forma automatizada.
+                </p>
+              </div>
+
+              {/* API Key Panel */}
+              <div className="p-6 rounded-2xl glass-card premium-border space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Key className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-lg">Sua Chave de API</h2>
+                    <p className="text-sm text-muted-foreground">Utilize esta chave nos cabeçalhos HTTP para autenticar os seus pedidos.</p>
+                  </div>
+                </div>
+
+                {apiKeyData?.api_key ? (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1 p-3 rounded-xl bg-card border border-border font-mono text-sm break-all flex items-center justify-between">
+                        <span>{apiKeyData.api_key}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-primary h-8 shrink-0 ml-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText(apiKeyData.api_key);
+                            toast.success("Chave de API copiada!");
+                          }}
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => generateApiKey.mutate()} 
+                        disabled={generateApiKey.isPending}
+                        className="shrink-0"
+                      >
+                        {generateApiKey.isPending ? "A gerar..." : "Gerar Nova Chave"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-6 text-xs text-muted-foreground pt-1">
+                      <div>
+                        <span>Limite Diário: </span>
+                        <span className="font-semibold text-foreground">{apiKeyData.daily_limit} requisições</span>
+                      </div>
+                      <div>
+                        <span>Consumido Hoje: </span>
+                        <span className="font-semibold text-foreground">{apiKeyData.requests_today} requisições</span>
+                      </div>
+                      {apiKeyData.discount_percent > 0 && (
+                        <div>
+                          <span>Desconto Reseller: </span>
+                          <span className="font-semibold text-success">{apiKeyData.discount_percent}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-2">
+                    <Button 
+                      onClick={() => generateApiKey.mutate()} 
+                      disabled={generateApiKey.isPending}
+                    >
+                      {generateApiKey.isPending ? "A gerar chave..." : "Ativar API / Gerar Chave"}
+                    </Button>
+                  </div>
+                )}
+
+                <div className="p-4 rounded-xl bg-warning/10 border border-warning/20 text-xs text-warning leading-relaxed flex gap-2">
+                  <span>⚠️</span>
+                  <p>
+                    <strong>Atenção:</strong> Mantenha a sua chave de API totalmente secreta. Qualquer pessoa com acesso a ela poderá debitar saldo da sua carteira para fazer pedidos. Nunca a exponha em código do lado do cliente (React, HTML/JS, etc.).
+                  </p>
+                </div>
+              </div>
+
+              {/* Technical Documentation */}
+              <div className="space-y-6">
+                <h2 className="font-display text-xl font-bold">Documentação Técnica</h2>
+                
+                {/* Intro Card */}
+                <div className="p-6 rounded-2xl glass-card space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Informação Geral</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      A nossa API de Revenda baseia-se em chamadas HTTP REST padrão e responde sempre com payloads no formato JSON.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <p className="font-semibold mb-1">Base URL</p>
+                      <code className="text-xs text-primary font-mono select-all">
+                        https://mqlxkfwzomkjmliuofmv.supabase.co/functions/v1/reseller-api
+                      </code>
+                    </div>
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <p className="font-semibold mb-1">Cabeçalho Obrigatório</p>
+                      <code className="text-xs text-primary font-mono select-all">
+                        X-API-Key: SUA_CHAVE_DE_API
+                      </code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* API Endpoints */}
+                <div className="space-y-4">
+                  
+                  {/* Endpoint 1: GET /services */}
+                  <div className="p-6 rounded-2xl bg-card border border-border space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 rounded bg-success/20 text-success text-xs font-bold uppercase font-mono">GET</span>
+                      <code className="text-sm font-semibold select-all font-mono">/services</code>
+                      <span className="text-sm text-muted-foreground ml-auto">Listar Serviços e Preços</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Retorna a lista de serviços ativos com o seu respetivo desconto de revendedor já aplicado.</p>
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Exemplo de Resposta (JSON):</p>
+                      <pre className="p-4 rounded-xl bg-muted font-mono text-xs overflow-x-auto text-foreground max-h-48 leading-relaxed">
+{`{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid-do-servico",
+      "name": "Seguidores Instagram Reais",
+      "platform": "instagram",
+      "description": "Seguidores de alta qualidade...",
+      "price_per_1000": 150.00,
+      "min_quantity": 100,
+      "max_quantity": 10000,
+      "estimated_time": "1-2 horas"
+    }
+  ]
+}`}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Endpoint 2: GET /balance */}
+                  <div className="p-6 rounded-2xl bg-card border border-border space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 rounded bg-success/20 text-success text-xs font-bold uppercase font-mono">GET</span>
+                      <code className="text-sm font-semibold select-all font-mono">/balance</code>
+                      <span className="text-sm text-muted-foreground ml-auto">Consultar Saldo</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Retorna o saldo disponível na sua conta em Meticais (MZN).</p>
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Exemplo de Resposta (JSON):</p>
+                      <pre className="p-4 rounded-xl bg-muted font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
+{`{
+  "success": true,
+  "data": {
+    "balance": 1250.75,
+    "currency": "MZN"
+  }
+}`}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Endpoint 3: POST /orders */}
+                  <div className="p-6 rounded-2xl bg-card border border-border space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 rounded bg-primary/20 text-primary text-xs font-bold uppercase font-mono">POST</span>
+                      <code className="text-sm font-semibold select-all font-mono">/orders</code>
+                      <span className="text-sm text-muted-foreground ml-auto">Efetuar Novo Pedido</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Submete um novo pedido de serviço de forma automática, debitando o saldo da sua carteira.</p>
+                    
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Payload de Envio (JSON):</p>
+                      <pre className="p-4 rounded-xl bg-muted font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
+{`{
+  "service_id": "uuid-do-servico",
+  "link": "https://instagram.com/perfil",
+  "quantity": 1000
+}`}
+                      </pre>
+                    </div>
+
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Exemplo de Resposta (JSON - 201 Created):</p>
+                      <pre className="p-4 rounded-xl bg-muted font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
+{`{
+  "success": true,
+  "data": {
+    "id": "uuid-do-pedido-gerado",
+    "status": "pending",
+    "quantity": 1000,
+    "total_price": 150.00,
+    "link": "https://instagram.com/perfil",
+    "created_at": "2026-08-02T14:48:00.000Z"
+  }
+}`}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Endpoint 4: GET /orders/:id */}
+                  <div className="p-6 rounded-2xl bg-card border border-border space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 rounded bg-success/20 text-success text-xs font-bold uppercase font-mono">GET</span>
+                      <code className="text-sm font-semibold select-all font-mono">/orders/&#123;id&#125;</code>
+                      <span className="text-sm text-muted-foreground ml-auto">Consultar Estado do Pedido</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Consulta o estado em tempo real de um pedido específico efetuado através do seu utilizador.</p>
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Exemplo de Resposta (JSON):</p>
+                      <pre className="p-4 rounded-xl bg-muted font-mono text-xs overflow-x-auto text-foreground leading-relaxed">
+{`{
+  "success": true,
+  "data": {
+    "id": "uuid-do-pedido-consultado",
+    "status": "completed",
+    "quantity": 1000,
+    "total_price": 150.00,
+    "link": "https://instagram.com/perfil",
+    "created_at": "2026-08-02T14:48:00.000Z",
+    "updated_at": "2026-08-02T15:00:00.000Z"
+  }
+}`}
+                      </pre>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
       {/* New Order Dialog */}
       <NewOrderForm 
         open={orderDialogOpen} 
-        onOpenChange={setOrderDialogOpen}
+        onOpenChange={handleOrderDialogClose}
+        initialServiceId={initialServiceId}
+        initialQuantity={initialQuantity}
       />
 
 
@@ -1042,7 +1433,7 @@ const Dashboard = () => {
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border px-2 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around">
-          {sidebarItems.map((item) => (
+          {sidebarItems.filter(item => item.id !== 'api').map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
