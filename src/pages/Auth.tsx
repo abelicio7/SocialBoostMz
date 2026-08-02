@@ -83,16 +83,17 @@ const Auth = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    const { data, error } = await supabase.functions.invoke("password-recovery", {
+      body: { action: "request", email: formData.email }
     });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
+
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error || "Erro ao enviar e-mail de recuperação.");
     } else {
       setResetEmail(formData.email);
       setIsVerifyingOtp(true);
-      toast.success("E-mail de recuperação enviado! Verifique a sua caixa de entrada e introduza o código.");
+      toast.success("Código de recuperação enviado! Verifique o seu e-mail.");
     }
   };
 
@@ -102,43 +103,47 @@ const Auth = () => {
       toast.error("Por favor, introduza o código de 6 dígitos.");
       return;
     }
-    setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: resetEmail,
-      token: otpToken.trim(),
-      type: "recovery",
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message || "Código inválido ou expirado. Tente novamente.");
-    } else {
-      toast.success("Código verificado com sucesso! Defina a sua nova senha.");
-      setIsVerifyingOtp(false);
-      setIsForgotPassword(false);
-      setLocalResetMode(true);
-    }
+    
+    // We will verify the code together with the new password in the final submit step
+    toast.success("Código guardado! Agora defina a sua nova palavra-passe.");
+    setIsVerifyingOtp(false);
+    setIsForgotPassword(false);
+    setLocalResetMode(true);
   };
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      toast.error("A nova senha deve ter pelo menos 6 caracteres.");
+      toast.error("A nova palavra-passe deve ter pelo menos 6 caracteres.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("As senhas introduzidas não coincidem.");
+      toast.error("As palavras-passe introduzidas não coincidem.");
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
+    const { data, error } = await supabase.functions.invoke("password-recovery", {
+      body: {
+        action: "reset",
+        email: resetEmail,
+        code: otpToken,
+        new_password: newPassword
+      }
     });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
+
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error || "Erro ao redefinir a palavra-passe.");
     } else {
-      toast.success("Senha atualizada com sucesso!");
-      navigate("/dashboard");
+      toast.success("Palavra-passe atualizada com sucesso! Faça login agora.");
+      setLocalResetMode(false);
+      setIsForgotPassword(false);
+      setIsVerifyingOtp(false);
+      setResetEmail("");
+      setOtpToken("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsLogin(true);
     }
   };
 
