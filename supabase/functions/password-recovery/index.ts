@@ -20,8 +20,8 @@ serve(async (req) => {
     const { action, email, code, new_password } = body;
 
     if (!email) {
-      return new Response(JSON.stringify({ error: "E-mail em falta" }), {
-        status: 400,
+      return new Response(JSON.stringify({ success: false, error: "E-mail em falta" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -36,8 +36,8 @@ serve(async (req) => {
 
       const foundUser = usersData.users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
       if (!foundUser) {
-        return new Response(JSON.stringify({ error: "Nenhuma conta encontrada com este e-mail." }), {
-          status: 404,
+        return new Response(JSON.stringify({ success: false, error: "Nenhuma conta encontrada com este e-mail." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -64,8 +64,8 @@ serve(async (req) => {
 
       if (!brevoApiKey) {
         console.error("BREVO_API_KEY environment variable is not configured.");
-        return new Response(JSON.stringify({ error: "Serviço de e-mail não configurado." }), {
-          status: 500,
+        return new Response(JSON.stringify({ success: false, error: "Serviço de e-mail não configurado." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -109,6 +109,7 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -116,8 +117,8 @@ serve(async (req) => {
     // Action 2: Reset Password
     if (action === "reset") {
       if (!code || !new_password) {
-        return new Response(JSON.stringify({ error: "Dados em falta (código ou nova palavra-passe)" }), {
-          status: 400,
+        return new Response(JSON.stringify({ success: false, error: "Dados em falta (código ou nova palavra-passe)" }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -131,16 +132,16 @@ serve(async (req) => {
         .maybeSingle();
 
       if (codeErr || !codeData) {
-        return new Response(JSON.stringify({ error: "Código de verificação incorreto ou inválido." }), {
-          status: 400,
+        return new Response(JSON.stringify({ success: false, error: "Código de verificação incorreto ou inválido." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       // 2. Check expiration
       if (new Date() > new Date(codeData.expires_at)) {
-        return new Response(JSON.stringify({ error: "Código de verificação expirado. Solicite um novo." }), {
-          status: 400,
+        return new Response(JSON.stringify({ success: false, error: "Código de verificação expirado. Solicite um novo." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -151,8 +152,8 @@ serve(async (req) => {
 
       const foundUser = usersData.users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
       if (!foundUser) {
-        return new Response(JSON.stringify({ error: "Utilizador não encontrado." }), {
-          status: 404,
+        return new Response(JSON.stringify({ success: false, error: "Utilizador não encontrado." }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -166,18 +167,19 @@ serve(async (req) => {
       await supabase.from("password_recovery_codes").delete().eq("email", normalizedEmail);
 
       return new Response(JSON.stringify({ success: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ error: "Ação inválida" }), {
-      status: 400,
+    return new Response(JSON.stringify({ success: false, error: "Ação inválida" }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("recovery error:", err);
-    return new Response(JSON.stringify({ error: err.message || "Erro interno" }), {
-      status: 500,
+    return new Response(JSON.stringify({ success: false, error: err.message || "Erro interno" }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
