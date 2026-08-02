@@ -143,6 +143,7 @@ const Auth = () => {
       setOtpToken("");
       setNewPassword("");
       setConfirmPassword("");
+      setFormData(prev => ({ ...prev, password: "" }));
       setIsLogin(true);
     }
   };
