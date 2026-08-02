@@ -285,8 +285,8 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
                       : "border-border bg-card hover:border-red-500/50"
                   )}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center">
-                    <span className="text-xl font-bold text-red-500">M</span>
+                  <div className="w-12 h-12 rounded-xl bg-white border border-border/50 flex items-center justify-center overflow-hidden p-1">
+                    <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
                   </div>
                   <span className="font-medium">M-Pesa</span>
                   <span className="text-xs text-muted-foreground">84/85</span>
@@ -300,8 +300,8 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
                       : "border-border bg-card hover:border-orange-500/50"
                   )}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                    <span className="text-xl font-bold text-orange-500">E</span>
+                  <div className="w-12 h-12 rounded-xl bg-white border border-border/50 flex items-center justify-center overflow-hidden p-1">
+                    <img src="/emola.png" alt="E-Mola" className="w-full h-full object-contain" />
                   </div>
                   <span className="font-medium">E-Mola</span>
                   <span className="text-xs text-muted-foreground">86/87</span>

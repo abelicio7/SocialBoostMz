@@ -768,8 +768,8 @@ const Dashboard = () => {
                     className="p-6 rounded-2xl glass-card premium-border cursor-pointer hover:border-red-500/40 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-red-500">M</span>
+                      <div className="w-14 h-14 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
+                        <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
                       </div>
                       <div>
                         <h3 className="font-semibold">M-Pesa</h3>
@@ -782,8 +782,8 @@ const Dashboard = () => {
                     className="p-6 rounded-2xl glass-card premium-border cursor-pointer hover:border-orange-500/40 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-orange-500">E</span>
+                      <div className="w-14 h-14 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
+                        <img src="/emola.png" alt="E-Mola" className="w-full h-full object-contain" />
                       </div>
                       <div>
                         <h3 className="font-semibold">E-Mola</h3>
