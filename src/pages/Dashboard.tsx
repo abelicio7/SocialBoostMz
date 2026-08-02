@@ -920,6 +920,7 @@ const Dashboard = () => {
                       </div>
                     ))}
                   </div>
+                )}
               </div>
 
               {/* Histórico de Depósitos */}
