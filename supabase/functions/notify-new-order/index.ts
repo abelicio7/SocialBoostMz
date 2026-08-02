@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildPushPayload } from "npm:@block65/webcrypto-web-push";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -204,17 +205,61 @@ serve(async (req) => {
       }
     }
 
-    // Also send Pushcut notification (like payments)
-    try {
-      await fetch("https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: `🛒 Novo pedido #${orderId.slice(0, 8)} - ${serviceName} (${Number(totalPrice).toLocaleString()} MZN)`,
-        }),
-      });
-    } catch (pushError) {
-      console.error("Pushcut notification failed:", pushError);
+    // Send Web Push notification to all admin devices
+    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
+
+    if (vapidPublicKey && vapidPrivateKey) {
+      try {
+        const { data: subscriptions, error: subError } = await supabase
+          .from("admin_push_subscriptions")
+          .select("*");
+
+        if (subError) {
+          console.error("Error fetching push subscriptions:", subError);
+        } else if (subscriptions && subscriptions.length > 0) {
+          console.log(`Sending Web Push notifications to ${subscriptions.length} subscriptions...`);
+          
+          const message = JSON.stringify({
+            title: "Novo pedido! 🛒",
+            body: `Serviço: ${serviceName} (${Number(totalPrice).toLocaleString()} MT) - ID: ${orderId.slice(0, 8)}`,
+            url: "/admin/pedidos"
+          });
+
+          const vapid = {
+            subject: "mailto:suporte@socialboostmz.com",
+            publicKey: vapidPublicKey,
+            privateKey: vapidPrivateKey
+          };
+
+          for (const sub of subscriptions) {
+            try {
+              const subscription = {
+                endpoint: sub.subscription.endpoint,
+                keys: {
+                  p256dh: sub.subscription.keys.p256dh,
+                  auth: sub.subscription.keys.auth
+                }
+              };
+
+              const pushRequest = await buildPushPayload(message, subscription, vapid);
+              const res = await fetch(subscription.endpoint, pushRequest);
+              
+              console.log(`Push sent to subscription ${sub.id}, status: ${res.status}`);
+              if (res.status === 410 || res.status === 404) {
+                console.log(`Subscription ${sub.id} is expired or invalid. Deleting...`);
+                await supabase.from("admin_push_subscriptions").delete().eq("id", sub.id);
+              }
+            } catch (err) {
+              console.error(`Failed to send Web Push to subscription ${sub.id}:`, err);
+            }
+          }
+        }
+      } catch (pushErr) {
+        console.error("Web Push notification delivery failed:", pushErr);
+      }
+    } else {
+      console.warn("VAPID keys not configured in environment variables");
     }
 
     return new Response(

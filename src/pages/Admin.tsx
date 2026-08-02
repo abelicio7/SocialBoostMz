@@ -22,10 +22,15 @@ const mobileNavItems = [
   { title: "API Keys", url: "/admin/api-keys", icon: Key },
 ];
 
+import { useAdminPushNotifications } from "@/hooks/useAdminPushNotifications";
+
 const Admin = () => {
   const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Subscribe admin to Web Push notifications
+  useAdminPushNotifications();
 
   useEffect(() => {
     if (!loading && !user) {
