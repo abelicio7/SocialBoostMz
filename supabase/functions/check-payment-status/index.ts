@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEBITOPAY_BASE = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
+const ZUMBOPAY_BASE = "https://zumbopay.com/api/public/v1";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -40,26 +40,39 @@ serve(async (req) => {
       });
     }
 
-    // Ask Debito Pay
-    const apiKey = Deno.env.get("DEBITOPAY_API_KEY")!;
-    const dpRes = await fetch(`${DEBITOPAY_BASE}/payment-orchestrator`, {
-      method: "POST",
+    // Ask Zumbopay
+    const apiKey = Deno.env.get("ZUMBOPAY_API_KEY")!;
+    const merchantId = Deno.env.get("ZUMBOPAY_MERCHANT_ID")!;
+
+    const response = await fetch(`${ZUMBOPAY_BASE}/payments/${payment_id}`, {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "X-Merchant-Id": merchantId,
         Accept: "application/json",
       },
-      body: JSON.stringify({ action: "check-status", payment_id }),
     });
-    const dpData = await dpRes.json();
-    const gwStatus: string | undefined = dpData?.payment?.status;
-    const reference: string | undefined = dpData?.payment?.provider_reference;
+
+    const resText = await response.text();
+    console.log("Check status response:", response.status, resText.substring(0, 1000));
+
+    let resData: any;
+    try {
+      resData = JSON.parse(resText);
+    } catch {
+      return new Response(JSON.stringify({ success: true, status: "pending" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const gwStatus: string | undefined = resData?.data?.status;
+    const reference: string | undefined = resData?.data?.reference;
 
     if (gwStatus === "success") {
       // Atomic claim: only credit if still pending
       const { data: claimed } = await supabase
         .from("pending_payments")
-        .update({ status: "success", provider_reference: reference || null })
+        .update({ status: "success", provider_reference: reference || payment_id })
         .eq("payment_id", payment_id)
         .eq("status", "pending")
         .select()
@@ -69,10 +82,12 @@ serve(async (req) => {
         const { data: profile } = await supabase
           .from("profiles").select("balance").eq("id", pending.user_id).single();
         const newBalance = (Number(profile?.balance) || 0) + Number(pending.amount);
+        
         await supabase
           .from("profiles")
           .update({ balance: newBalance, is_blocked: false })
           .eq("id", pending.user_id);
+
         await supabase.from("wallet_transactions").insert({
           user_id: pending.user_id,
           amount: pending.amount,
@@ -80,6 +95,7 @@ serve(async (req) => {
           description: `Recarga via ${pending.method.toUpperCase()} - ${pending.phone}`,
           reference_id: reference || payment_id,
         });
+
         try {
           await fetch("https://api.pushcut.io/LwrUR20CODgHBOG_HuUOK/notifications/Venda%20aprovada", {
             method: "POST",
@@ -93,7 +109,7 @@ serve(async (req) => {
       });
     }
 
-    if (gwStatus === "failed" || gwStatus === "expired") {
+    if (gwStatus === "failed" || gwStatus === "expired" || gwStatus === "cancelled") {
       await supabase
         .from("pending_payments").update({ status: "failed" })
         .eq("payment_id", payment_id).eq("status", "pending");

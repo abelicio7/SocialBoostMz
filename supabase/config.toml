@@ -15,7 +15,7 @@ verify_jwt = false
 [functions.sync-order-status]
 verify_jwt = false
 
-[functions.debitopay-webhook]
+[functions.zumbopay-webhook]
 verify_jwt = false
 
 [functions.send-welcome-email]

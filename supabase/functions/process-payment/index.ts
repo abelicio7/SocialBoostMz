@@ -13,7 +13,7 @@ interface PaymentRequest {
   method: "mpesa" | "emola";
 }
 
-const DEBITOPAY_BASE = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
+const ZUMBOPAY_BASE = "https://zumbopay.com/api/public/v1";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -54,58 +54,55 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get("DEBITOPAY_API_KEY");
-    const merchantId = Deno.env.get("DEBITOPAY_MERCHANT_ID");
-    const mpesaWallet = Deno.env.get("DEBITOPAY_MPESA_WALLET_CODE");
-    const emolaWallet = Deno.env.get("DEBITOPAY_EMOLA_WALLET_CODE");
+    const apiKey = Deno.env.get("ZUMBOPAY_API_KEY");
+    const merchantId = Deno.env.get("ZUMBOPAY_MERCHANT_ID");
+    const mpesaWallet = Deno.env.get("ZUMBOPAY_MPESA_WALLET_ID");
+    const emolaWallet = Deno.env.get("ZUMBOPAY_EMOLA_WALLET_ID");
 
     if (!apiKey || !merchantId || !mpesaWallet || !emolaWallet) {
-      console.error("Missing Debito Pay credentials");
+      console.error("Missing Zumbopay credentials");
       return new Response(
-        JSON.stringify({ success: false, error: "Configuração de pagamento em falta" }),
+        JSON.stringify({ success: false, error: "Configuração de pagamento em falta no servidor" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const walletCode = method === "mpesa" ? mpesaWallet : emolaWallet;
-    const internationalPhone = `+258${phone}`;
+    const walletId = method === "mpesa" ? mpesaWallet : emolaWallet;
+    const formattedPhone = `258${phone}`;
+    const sourceId = `sb_${userId.slice(0, 8)}_${Date.now()}`;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Call Debito Pay orchestrator
-    const orchestratorBody = {
-      action: "process",
-      payment_method: method,
-      merchant_id: merchantId,
-      wallet_code: walletCode,
+    // Call Zumbopay charges endpoint
+    const body = {
+      wallet_id: walletId,
       amount: amount,
-      currency: "MZN",
-      phone: internationalPhone,
-      source: "gateway",
-      source_id: `sb_${userId.slice(0, 8)}_${Date.now()}`,
-      customer_phone: internationalPhone,
+      msisdn: formattedPhone,
+      customer_name: "Cliente SocialBoost",
+      source_id: sourceId,
     };
 
-    console.log("Calling Debito Pay orchestrator:", JSON.stringify(orchestratorBody));
+    console.log("Calling Zumbopay direct charge:", JSON.stringify(body));
 
-    const dpResponse = await fetch(`${DEBITOPAY_BASE}/payment-orchestrator`, {
+    const response = await fetch(`${ZUMBOPAY_BASE}/charges`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
+        "X-Merchant-Id": merchantId,
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify(orchestratorBody),
+      body: JSON.stringify(body),
     });
 
-    const dpText = await dpResponse.text();
-    console.log("Debito Pay status:", dpResponse.status, "body:", dpText.substring(0, 500));
+    const resText = await response.text();
+    console.log("Zumbopay status:", response.status, "body:", resText.substring(0, 1000));
 
-    let dpResult: any;
+    let resData: any;
     try {
-      dpResult = JSON.parse(dpText);
+      resData = JSON.parse(resText);
     } catch {
       return new Response(
         JSON.stringify({ success: false, error: "Resposta inválida do gateway de pagamento" }),
@@ -113,18 +110,19 @@ serve(async (req) => {
       );
     }
 
-    if (!dpResult.success) {
+    // Handle error response from Zumbopay
+    if (resData.error || !resData.data) {
+      const errorMsg = resData.error?.message || "O pagamento foi rejeitado.";
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: dpResult.error || "Pagamento não foi aceite. Tente novamente.",
-        }),
+        JSON.stringify({ success: false, error: errorMsg }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // === M-Pesa: synchronous success → credit immediately ===
-    if (method === "mpesa" && dpResult.status === "success") {
+    const { status, reference } = resData.data;
+
+    // === Synchronous success → credit immediately ===
+    if (status === "success") {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("balance")
@@ -158,8 +156,8 @@ serve(async (req) => {
         user_id: userId,
         amount: amount,
         type: "deposit",
-        description: `Recarga via MPESA - ${phone}`,
-        reference_id: dpResult.reference || dpResult.transactionId || dpResult.payment_id,
+        description: `Recarga via ${method.toUpperCase()} - ${phone}`,
+        reference_id: reference || sourceId,
       });
 
       // Pushcut notification
@@ -184,16 +182,16 @@ serve(async (req) => {
       );
     }
 
-    // === E-Mola (or M-Pesa pending): store pending → wait for webhook ===
-    if (dpResult.payment_id) {
+    // === Pending: store pending payment in DB → wait for webhook or poll ===
+    if (status === "pending" && reference) {
       const { error: pendingError } = await supabase.from("pending_payments").insert({
-        payment_id: dpResult.payment_id,
+        payment_id: reference, // we use the Zumbopay reference as the primary payment identifier
         user_id: userId,
         amount: amount,
         method: method,
         phone: phone,
         status: "pending",
-        provider_reference: dpResult.reference || null,
+        provider_reference: reference,
       });
 
       if (pendingError) {
@@ -208,7 +206,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           status: "pending",
-          payment_id: dpResult.payment_id,
+          payment_id: reference,
           message: "Confirme o pagamento no seu telefone. O saldo será actualizado automaticamente.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

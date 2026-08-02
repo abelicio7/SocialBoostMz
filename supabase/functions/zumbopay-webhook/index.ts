@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-signature",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-zumbopay-signature",
 };
 
 async function verifyHmac(rawBody: string, signature: string, secret: string): Promise<boolean> {
@@ -18,7 +18,7 @@ async function verifyHmac(rawBody: string, signature: string, secret: string): P
   const hex = Array.from(new Uint8Array(sig))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  return hex === signature;
+  return hex.toLowerCase() === signature.toLowerCase();
 }
 
 serve(async (req) => {
@@ -28,11 +28,11 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get("x-webhook-signature") || "";
-    const secret = Deno.env.get("DEBITOPAY_WEBHOOK_SECRET");
+    const signature = req.headers.get("x-zumbopay-signature") || "";
+    const secret = Deno.env.get("ZUMBOPAY_WEBHOOK_SECRET");
 
     if (!secret) {
-      console.error("DEBITOPAY_WEBHOOK_SECRET not configured");
+      console.error("ZUMBOPAY_WEBHOOK_SECRET not configured");
       return new Response(JSON.stringify({ error: "Server misconfigured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -40,7 +40,7 @@ serve(async (req) => {
     }
 
     if (!signature || !(await verifyHmac(rawBody, signature, secret))) {
-      console.warn("Invalid webhook signature");
+      console.warn("Invalid webhook signature received:", signature);
       return new Response(JSON.stringify({ error: "Invalid signature" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,14 +48,16 @@ serve(async (req) => {
     }
 
     const payload = JSON.parse(rawBody);
-    console.log("Webhook event:", payload.event, "payment_id:", payload?.data?.payment_id);
+    console.log("Webhook event received:", payload.event, "data:", JSON.stringify(payload.data));
 
     const event = payload.event as string;
     const data = payload.data || {};
-    const paymentId = data.payment_id as string | undefined;
+    
+    // Zumbopay uses reference (like ZP_AB12CD34) as the transaction identifier
+    const reference = data.reference as string | undefined;
 
-    if (!paymentId) {
-      return new Response(JSON.stringify({ ok: true, note: "no payment_id" }), {
+    if (!reference) {
+      return new Response(JSON.stringify({ ok: true, note: "no reference in payload" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -69,13 +71,13 @@ serve(async (req) => {
     const { data: pending, error: pendingError } = await supabase
       .from("pending_payments")
       .select("*")
-      .eq("payment_id", paymentId)
+      .eq("payment_id", reference)
       .maybeSingle();
 
     if (pendingError || !pending) {
-      console.warn("Pending payment not found for", paymentId);
-      // Always 200 to avoid retries forever
-      return new Response(JSON.stringify({ ok: true, note: "unknown payment" }), {
+      console.warn("Pending payment not found for reference:", reference);
+      // Always 200 to acknowledge receipt and avoid endless retries
+      return new Response(JSON.stringify({ ok: true, note: "unknown transaction" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -89,7 +91,7 @@ serve(async (req) => {
       });
     }
 
-    if (event === "payment.completed") {
+    if (event === "payment.succeeded") {
       const brevoApiKey = Deno.env.get("BREVO_API_KEY");
       const brevoSenderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@socialboostmz.com";
 
@@ -112,13 +114,13 @@ serve(async (req) => {
         amount: pending.amount,
         type: "deposit",
         description: `Recarga via ${pending.method.toUpperCase()} - ${pending.phone}`,
-        reference_id: data.reference || paymentId,
+        reference_id: reference,
       });
 
       await supabase
         .from("pending_payments")
-        .update({ status: "success", provider_reference: data.reference || null })
-        .eq("payment_id", paymentId);
+        .update({ status: "success", provider_reference: reference })
+        .eq("payment_id", reference);
 
       // Send email confirmation to user
       if (brevoApiKey) {
@@ -148,7 +150,7 @@ serve(async (req) => {
                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                       <tr style="background: #f9fafb;">
                         <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">ID da Transação</td>
-                        <td style="padding: 10px; border: 1px solid #e5e7eb;">#${(data.reference || paymentId).slice(0, 12)}</td>
+                        <td style="padding: 10px; border: 1px solid #e5e7eb;">#${reference.slice(0, 12)}</td>
                       </tr>
                       <tr>
                         <td style="padding: 10px; font-weight: bold; border: 1px solid #e5e7eb;">Valor Adicionado</td>
@@ -196,7 +198,7 @@ serve(async (req) => {
       await supabase
         .from("pending_payments")
         .update({ status: "failed" })
-        .eq("payment_id", paymentId);
+        .eq("payment_id", reference);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
