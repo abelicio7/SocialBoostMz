@@ -32,6 +32,11 @@ export function useAdminPushNotifications() {
         const registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
         });
+        try {
+          await registration.update();
+        } catch (e) {
+          console.warn("Failed to check for service worker updates:", e);
+        }
         console.log("Service Worker registered on scope:", registration.scope);
 
         // 2. Request permission if not already prompt/denied

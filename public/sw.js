@@ -1,3 +1,11 @@
+self.addEventListener('install', function(event) {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function(event) {
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('push', function(event) {
   let data = { title: 'Novo pedido! 🛒', body: 'Um novo pedido foi recebido na plataforma.' };
   if (event.data) {
