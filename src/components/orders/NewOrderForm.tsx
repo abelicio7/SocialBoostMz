@@ -132,14 +132,16 @@ const NewOrderForm = ({
       if (!hasEnoughBalance) throw new Error("Saldo insuficiente");
 
       // 1. Create order and debit balance atomically on the server
-      const { data: order, error: orderError } = await supabase.rpc('place_order_secure', {
+      const { data: rawOrder, error: orderError } = await supabase.rpc('place_order_secure', {
         p_service_id: selectedService.id,
         p_link: link.trim(),
         p_quantity: quantity,
       });
 
       if (orderError) throw orderError;
-      if (!order) throw new Error("Falha ao criar pedido.");
+      if (!rawOrder) throw new Error("Falha ao criar pedido.");
+
+      const order = Array.isArray(rawOrder) ? rawOrder[0] : rawOrder;
 
       // 2. Auto-forward to supplier if service has provider_service_id
       if (selectedService.provider_service_id) {

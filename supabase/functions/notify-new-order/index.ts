@@ -211,9 +211,11 @@ serve(async (req) => {
 
     if (vapidPublicKey && vapidPrivateKey) {
       try {
+        const adminUserIds = adminRoles?.map((r: any) => r.user_id) || [];
         const { data: subscriptions, error: subError } = await supabase
           .from("admin_push_subscriptions")
-          .select("*");
+          .select("*")
+          .in("user_id", adminUserIds);
 
         if (subError) {
           console.error("Error fetching push subscriptions:", subError);
