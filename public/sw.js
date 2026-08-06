@@ -7,28 +7,79 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('push', function(event) {
-  let data = { title: 'Novo pedido! 🛒', body: 'Um novo pedido foi recebido na plataforma.' };
+  // Try to parse payload from push event data
+  let payloadData = null;
   if (event.data) {
     try {
-      data = event.data.json();
+      payloadData = event.data.json();
     } catch (e) {
-      data = { title: 'Novo pedido! 🛒', body: event.data.text() };
+      const text = event.data.text();
+      if (text) {
+        payloadData = { title: 'Novo pedido! 🛒', body: text };
+      }
     }
   }
 
-  const options = {
-    body: data.body || data.text || 'Detalhes do pedido não disponíveis.',
-    icon: '/favicon.png',
-    badge: '/favicon.png',
-    vibrate: [200, 100, 200],
-    data: {
-      url: data.url || '/dashboard'
-    }
-  };
+  // If payload exists and contains the price text, show it immediately
+  if (payloadData && payloadData.body && (payloadData.body.includes('MT') || payloadData.body.includes('MZN'))) {
+    const options = {
+      body: payloadData.body,
+      icon: '/favicon.png',
+      badge: '/favicon.png',
+      vibrate: [200, 100, 200],
+      data: {
+        url: payloadData.url || '/admin/pedidos'
+      }
+    };
+    event.waitUntil(
+      self.registration.showNotification(payloadData.title || 'Novo pedido! 🛒', options)
+    );
+    return;
+  }
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Novo pedido! 🛒', options)
-  );
+  // Fallback: Fetch the price of the latest order from Supabase RPC
+  const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xbHhrZnd6b21ram1saXVvZm12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1OTI4NDUsImV4cCI6MjA5MzE2ODg0NX0.cut6lVM3PX7GMwniNwQ7X2i_rlXek-8_Jh2LeZOJZNE';
+  const fetchPromise = fetch('https://mqlxkfwzomkjmliuofmv.supabase.co/rest/v1/rpc/get_latest_order_price', {
+    method: 'POST',
+    headers: {
+      'apikey': anonKey,
+      'Authorization': 'Bearer ' + anonKey,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(function(res) {
+    return res.json();
+  })
+  .then(function(price) {
+    const priceNum = Number(price);
+    const bodyText = (!isNaN(priceNum) && priceNum > 0)
+      ? 'Um novo pedido de ' + priceNum.toLocaleString() + ' MTs foi recebido na Plataforma.'
+      : 'Um novo pedido foi recebido na Plataforma.';
+
+    return self.registration.showNotification('Novo pedido! 🛒', {
+      body: bodyText,
+      icon: '/favicon.png',
+      badge: '/favicon.png',
+      vibrate: [200, 100, 200],
+      data: {
+        url: '/admin/pedidos'
+      }
+    });
+  })
+  .catch(function(err) {
+    console.error('Failed to fetch latest order price:', err);
+    return self.registration.showNotification('Novo pedido! 🛒', {
+      body: 'Um novo pedido foi recebido na Plataforma.',
+      icon: '/favicon.png',
+      badge: '/favicon.png',
+      vibrate: [200, 100, 200],
+      data: {
+        url: '/admin/pedidos'
+      }
+    });
+  });
+
+  event.waitUntil(fetchPromise);
 });
 
 self.addEventListener('notificationclick', function(event) {
