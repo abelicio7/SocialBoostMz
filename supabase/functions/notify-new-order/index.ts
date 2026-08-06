@@ -44,9 +44,18 @@ serve(async (req) => {
     // Get service info
     const { data: service } = await supabase
       .from("services")
-      .select("name, platform")
+      .select("name, platform, provider_price, provider_service_id")
       .eq("id", serviceId)
       .single();
+
+    // Get exchange rate
+    const { data: settings } = await supabase
+      .from("platform_settings")
+      .select("exchange_rate_brl_mzn")
+      .eq("id", "main")
+      .single();
+    
+    const exchangeRate = Number(settings?.exchange_rate_brl_mzn || 12.00);
 
     // Get admin email (users with admin role)
     const { data: adminRoles } = await supabase
@@ -221,10 +230,21 @@ serve(async (req) => {
           console.error("Error fetching push subscriptions:", subError);
         } else if (subscriptions && subscriptions.length > 0) {
           console.log(`Sending Web Push notifications to ${subscriptions.length} subscriptions...`);
-          
+          const providerPrice = Number(service?.provider_price || 0);
+          const quantityNum = Number(quantity || 0);
+          const totalPriceNum = Number(totalPrice || 0);
+
+          const costBrl = (providerPrice / 1000) * quantityNum;
+          const costMzn = costBrl * exchangeRate;
+          const commission = totalPriceNum - costMzn;
+          const commissionText = commission >= 0 
+            ? Math.max(0, Math.round(commission)).toLocaleString() + " MT"
+            : "0 MT";
+
+          const shortOrderId = orderId ? `#${orderId.slice(0, 8)}` : "";
           const message = JSON.stringify({
             title: "Novo pedido! 🛒",
-            body: `Um novo pedido de ${Number(totalPrice).toLocaleString()} MTs foi recebido na Plataforma.`,
+            body: `Um novo pedido foi recebido na Plataforma\nComissão: ${commissionText} - ${shortOrderId}`,
             url: "/admin/pedidos"
           });
 

@@ -37,9 +37,9 @@ self.addEventListener('push', function(event) {
     return;
   }
 
-  // Fallback: Fetch the price of the latest order from Supabase RPC
+  // Fallback: Fetch the commission and ID of the latest order from Supabase RPC
   const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xbHhrZnd6b21ram1saXVvZm12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1OTI4NDUsImV4cCI6MjA5MzE2ODg0NX0.cut6lVM3PX7GMwniNwQ7X2i_rlXek-8_Jh2LeZOJZNE';
-  const fetchPromise = fetch('https://mqlxkfwzomkjmliuofmv.supabase.co/rest/v1/rpc/get_latest_order_price', {
+  const fetchPromise = fetch('https://mqlxkfwzomkjmliuofmv.supabase.co/rest/v1/rpc/get_latest_order_push_fallback', {
     method: 'POST',
     headers: {
       'apikey': anonKey,
@@ -50,11 +50,14 @@ self.addEventListener('push', function(event) {
   .then(function(res) {
     return res.json();
   })
-  .then(function(price) {
-    const priceNum = Number(price);
-    const bodyText = (!isNaN(priceNum) && priceNum > 0)
-      ? 'Um novo pedido de ' + priceNum.toLocaleString() + ' MTs foi recebido na Plataforma.'
-      : 'Um novo pedido foi recebido na Plataforma.';
+  .then(function(resultData) {
+    const commNum = Number(resultData?.commission);
+    const commText = (!isNaN(commNum) && commNum >= 0)
+      ? Math.max(0, Math.round(commNum)).toLocaleString() + ' MT'
+      : '0 MT';
+    const orderId = resultData?.order_id || '';
+
+    const bodyText = 'Um novo pedido foi recebido na Plataforma\nComissão: ' + commText + ' - ' + orderId;
 
     return self.registration.showNotification('Novo pedido! 🛒', {
       body: bodyText,
@@ -67,7 +70,7 @@ self.addEventListener('push', function(event) {
     });
   })
   .catch(function(err) {
-    console.error('Failed to fetch latest order price:', err);
+    console.error('Failed to fetch latest order push details:', err);
     return self.registration.showNotification('Novo pedido! 🛒', {
       body: 'Um novo pedido foi recebido na Plataforma.',
       icon: '/favicon.png',
