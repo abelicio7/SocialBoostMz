@@ -240,7 +240,28 @@ const NewOrderForm = ({
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 -mx-6 px-6">
-          {isBlocked ? (
+          {!user ? (
+            <div className="p-6 rounded-xl bg-primary/5 border border-primary/20 text-center space-y-4 my-2">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
+                <Wallet className="w-6 h-6 animate-pulse-slow" />
+              </div>
+              <h3 className="font-display font-bold text-lg text-foreground">Inicie Sessão para Pedir</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Para efetuar um pedido, precisa de criar uma conta ou iniciar sessão no SocialBoostMz. 
+                Carregue o seu saldo de forma segura e comece a crescer hoje!
+              </p>
+              <Button 
+                variant="hero" 
+                className="w-full" 
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate("/auth");
+                }}
+              >
+                Entrar ou Criar Conta
+              </Button>
+            </div>
+          ) : isBlocked ? (
             <div className="p-6 rounded-xl bg-destructive/10 border border-destructive/20 text-center space-y-3">
               <Ban className="w-10 h-10 text-destructive mx-auto" />
               <h3 className="font-semibold text-destructive">Conta Bloqueada</h3>
@@ -383,28 +404,30 @@ const NewOrderForm = ({
           )}
         </div>
 
-        <DialogFooter className="pt-4 border-t border-border flex-shrink-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            type="submit"
-            form="new-order-form"
-            disabled={isBlocked || isOnBreak || !selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
-          >
-            {createOrder.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                A processar...
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Confirmar Pedido
-              </>
-            )}
-          </Button>
-        </DialogFooter>
+        {user && (
+          <DialogFooter className="pt-4 border-t border-border flex-shrink-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              type="submit"
+              form="new-order-form"
+              disabled={isBlocked || isOnBreak || !selectedService || !link.trim() || !hasEnoughBalance || createOrder.isPending}
+            >
+              {createOrder.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  A processar...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Confirmar Pedido
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

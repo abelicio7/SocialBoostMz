@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Clock, HelpCircle, AlertCircle, ShoppingBag } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DbService {
   id: string;
@@ -34,6 +35,7 @@ const PriceCalculator = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<string>("facebook");
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1000);
+  const { user } = useAuth();
 
   // Fetch active services
   const { data: services, isLoading } = useQuery({
@@ -238,7 +240,7 @@ const PriceCalculator = () => {
               )}
             </CardContent>
             <CardFooter className="pb-8 pt-2">
-              <Link to="/auth" className="w-full">
+              <Link to={user ? "/dashboard" : "/auth"} className="w-full">
                 <Button 
                   variant="hero" 
                   size="xl" 
