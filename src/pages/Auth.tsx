@@ -220,7 +220,7 @@ const Auth = () => {
         // Register
         const redirectUrl = `${window.location.origin}/dashboard`;
         
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -252,7 +252,7 @@ const Auth = () => {
         }
 
         // Update profile with additional data
-        const { data: { user: newUser } } = await supabase.auth.getUser();
+        const newUser = data?.user;
         if (newUser) {
           await supabase.from('profiles').update({
             phone: formData.phone,
@@ -263,6 +263,7 @@ const Auth = () => {
         }
 
         toast.success("Conta criada com sucesso! Bem-vindo ao SocialBoostMz!");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast.error("Ocorreu um erro. Por favor tente novamente.");
