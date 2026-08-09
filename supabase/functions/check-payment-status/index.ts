@@ -80,7 +80,7 @@ serve(async (req) => {
 
       if (claimed) {
         const { data: profile } = await supabase
-          .from("profiles").select("balance").eq("id", pending.user_id).single();
+          .from("profiles").select("full_name, balance").eq("id", pending.user_id).single();
         const newBalance = (Number(profile?.balance) || 0) + Number(pending.amount);
         
         await supabase
@@ -107,6 +107,34 @@ serve(async (req) => {
           });
         } catch (e) {
           console.error("Failed to send deposit push notification:", e);
+        }
+
+        // Notify admins about new recharge
+        try {
+          const { data: adminRoles } = await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "admin");
+
+          if (adminRoles && adminRoles.length > 0) {
+            const customerName = profile?.full_name || "Cliente";
+            for (const role of adminRoles) {
+              try {
+                await supabase.functions.invoke("send-push", {
+                  body: {
+                    user_id: role.user_id,
+                    title: "Recarga Recebida! 💸",
+                    body: `${customerName} recarregou ${pending.amount} MZN via ${pending.method.toUpperCase()}.`,
+                    url: "/admin/utilizadores"
+                  }
+                });
+              } catch (err) {
+                console.error(`Failed to send deposit push notification to admin ${role.user_id}:`, err);
+              }
+            }
+          }
+        } catch (adminNotifyErr) {
+          console.error("Failed to notify admins about deposit:", adminNotifyErr);
         }
       }
       return new Response(JSON.stringify({ success: true, status: "success" }), {
