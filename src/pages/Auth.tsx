@@ -192,7 +192,7 @@ const Auth = () => {
           if (error.message.includes("Invalid login credentials")) {
             toast.error("Email ou senha incorrectos");
           } else if (error.message.includes("Email not confirmed")) {
-            toast.error("Por favor confirme o seu email");
+            toast.error("Erro ao iniciar sessão. Por favor tente novamente.");
           } else {
             toast.error(error.message);
           }
