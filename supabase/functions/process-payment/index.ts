@@ -30,9 +30,9 @@ serve(async (req) => {
       );
     }
 
-    if (amount < 50) {
+    if (amount < 20) {
       return new Response(
-        JSON.stringify({ success: false, error: "Valor mínimo de recarga é 50 MZN" }),
+        JSON.stringify({ success: false, error: "Valor mínimo de recarga é 20 MZN" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
