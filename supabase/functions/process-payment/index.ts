@@ -26,14 +26,14 @@ serve(async (req) => {
     if (!userId || !amount || !phone || !method) {
       return new Response(
         JSON.stringify({ success: false, error: "Campos obrigatórios em falta" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (amount < 20) {
       return new Response(
         JSON.stringify({ success: false, error: "Valor mínimo de recarga é 20 MZN" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -43,14 +43,14 @@ serve(async (req) => {
     if (method === "mpesa" && !validMpesa) {
       return new Response(
         JSON.stringify({ success: false, error: "Número M-Pesa inválido (deve começar com 84 ou 85)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (method === "emola" && !validEmola) {
       return new Response(
         JSON.stringify({ success: false, error: "Número E-Mola inválido (deve começar com 86 ou 87)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -63,7 +63,7 @@ serve(async (req) => {
       console.error("Missing Zumbopay credentials");
       return new Response(
         JSON.stringify({ success: false, error: "Configuração de pagamento em falta no servidor" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -106,7 +106,7 @@ serve(async (req) => {
     } catch {
       return new Response(
         JSON.stringify({ success: false, error: "Resposta inválida do gateway de pagamento" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -115,7 +115,7 @@ serve(async (req) => {
       const errorMsg = resData.error?.message || "O pagamento foi rejeitado.";
       return new Response(
         JSON.stringify({ success: false, error: errorMsg }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -133,7 +133,7 @@ serve(async (req) => {
         console.error("Error fetching profile:", profileError);
         return new Response(
           JSON.stringify({ success: false, error: "Erro ao buscar saldo do utilizador" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -148,7 +148,7 @@ serve(async (req) => {
         console.error("Error updating balance:", updateError);
         return new Response(
           JSON.stringify({ success: false, error: "Erro ao actualizar saldo" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -198,7 +198,7 @@ serve(async (req) => {
         console.error("Error inserting pending payment:", pendingError);
         return new Response(
           JSON.stringify({ success: false, error: "Erro ao registar pagamento pendente" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -215,13 +215,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: false, error: "Resposta inesperada do gateway de pagamento" }),
-      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Payment processing error:", error);
     return new Response(
       JSON.stringify({ success: false, error: "Erro interno do servidor" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
