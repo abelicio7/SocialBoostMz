@@ -18,11 +18,11 @@ interface TopUpDialogProps {
 
 type PaymentMethod = "mpesa" | "emola";
 
-const PRESET_AMOUNTS = [100, 250, 500, 1000, 2500, 5000];
+const PRESET_AMOUNTS = [20, 50, 100, 200, 300, 500];
 
 const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const [step, setStep] = useState<"amount" | "payment" | "processing" | "success" | "failed">("amount");
-  const [amount, setAmount] = useState<number>(500);
+  const [amount, setAmount] = useState<number>(100);
   const [customAmount, setCustomAmount] = useState("");
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("mpesa");
@@ -146,7 +146,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (pollRef.current) clearInterval(pollRef.current);
     setStep("amount");
-    setAmount(500);
+    setAmount(100);
     setCustomAmount("");
     setPhone("");
     setMethod("mpesa");
