@@ -18,7 +18,7 @@ interface TopUpDialogProps {
 
 type PaymentMethod = "mpesa" | "emola";
 
-const PRESET_AMOUNTS = [20, 50, 100, 200, 300, 500];
+const PRESET_AMOUNTS = [50, 100, 150, 200, 300, 500];
 
 const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const [step, setStep] = useState<"amount" | "payment" | "processing" | "success" | "failed">("amount");
@@ -163,14 +163,14 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const handleCustomAmountChange = (value: string) => {
     setCustomAmount(value);
     const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 20) {
+    if (!isNaN(numValue) && numValue >= 50) {
       setAmount(numValue);
     }
   };
 
   const handleContinueToPayment = () => {
-    if (amount < 20) {
-      toast.error("Valor mínimo de recarga é 20 MZN");
+    if (amount < 50) {
+      toast.error("Valor mínimo de recarga é 50 MZN");
       return;
     }
     setStep("payment");
@@ -240,7 +240,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
 
             <div>
               <Label htmlFor="custom-amount" className="text-sm text-muted-foreground">
-                Ou insira outro valor (mínimo 20 MZN)
+                Ou insira outro valor (mínimo 50 MZN)
               </Label>
               <div className="relative mt-2">
                 <Input
@@ -250,7 +250,7 @@ const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
                   value={customAmount}
                   onChange={(e) => handleCustomAmountChange(e.target.value)}
                   className="pr-16"
-                  min={20}
+                  min={50}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                   MZN
